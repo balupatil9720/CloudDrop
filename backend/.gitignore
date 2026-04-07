@@ -6,6 +6,8 @@ node_modules/
 
 .env
 
+# public/temp multer files
+public/temp
 # Logs
 
 logs
