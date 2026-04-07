@@ -1,1 +1,2 @@
-*** Cloud Based file sharing platform ***
+# 🚀 CloudDrop
+CloudDrop is a modern file storing and sharing platform...
