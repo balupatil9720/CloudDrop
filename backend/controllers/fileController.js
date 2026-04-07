@@ -9,9 +9,9 @@ const uploadFile = asyncHandler(async (req, res) => {
   }
 
   const newFile = await File.create({
-    fileName: req.file.filename,
+    fileName: req.file.originalname, //ORIGINAL NAME
     fileSize: req.file.size,
-    filePath: req.file.path,   // now from multer middleware
+    filePath: req.file.path,   // unique path for storage
   });
 
   res

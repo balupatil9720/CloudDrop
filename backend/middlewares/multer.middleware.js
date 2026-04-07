@@ -2,7 +2,6 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// ensure folder exists
 const uploadPath = "public/temp";
 
 if (!fs.existsSync(uploadPath)) {
@@ -14,6 +13,7 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
+    // unique name for storage
     const uniqueName =
       Date.now() + "-" + Math.round(Math.random() * 1e9);
 
@@ -23,17 +23,4 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  // allow all for now (later restrict types)
-  cb(null, true);
-};
-
-const limits = {
-  fileSize: 50 * 1024 * 1024, // 50MB
-};
-
-export const upload = multer({
-  storage,
-  fileFilter,
-  limits,
-});
+export const upload = multer({ storage });
