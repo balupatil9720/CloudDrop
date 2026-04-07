@@ -1,17 +1,18 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import Upload from "./components/Upload";
+import FileList from "./components/FileList";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const refresh = () => {
+    window.location.reload();
+  };
 
   return (
-    <>
-      
-    </>
-  )
+    <div style={{ padding: "20px" }}>
+      <h1>CloudDrop</h1>
+      <Upload onUploadSuccess={refresh} />
+      <FileList />
+    </div>
+  );
 }
 
-export default App
+export default App;
