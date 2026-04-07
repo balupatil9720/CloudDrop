@@ -1,6 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 const Upload = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
 
@@ -11,18 +13,14 @@ const Upload = ({ onUploadSuccess }) => {
     formData.append("file", file);
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/api/files/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      await axios.post(`${API_BASE}/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       alert("Upload successful");
-      onUploadSuccess(); // refresh list
+      onUploadSuccess();
     } catch (err) {
       console.error(err);
       alert("Upload failed");
