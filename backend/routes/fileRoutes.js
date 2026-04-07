@@ -4,7 +4,7 @@ import { upload } from "../middlewares/multer.middleware.js";
 
 const router = express.Router();
 
-// middleware used here 👇
+// apis for file upload and retrieval
 router.post("/upload", upload.single("file"), uploadFile);
 router.get("/files", getFiles);
 
