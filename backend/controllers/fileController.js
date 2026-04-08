@@ -8,10 +8,14 @@ import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
+
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import s3 from "../config/s3.js";
 
-// ✅ Upload File
+import { generateCode } from "../utils/generateCode.js";
+
+
+// ✅ Upload File (with 6-digit code)
 const uploadFile = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, "File is required");
@@ -37,18 +41,34 @@ const uploadFile = asyncHandler(async (req, res) => {
 
   const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
+  // 🔥 GENERATE UNIQUE CODE (FIXED)
+  let code;
+  let exists = true;
+
+  while (exists) {
+    code = generateCode();
+    const fileExists = await File.findOne({ code });
+    exists = !!fileExists;
+  }
+
   const newFile = await File.create({
     fileName: req.file.originalname,
     fileSize: req.file.size,
     fileUrl,
+    code,
   });
 
   fs.unlinkSync(req.file.path);
 
-  res
-    .status(201)
-    .json(new ApiResponse(201, newFile, "File uploaded to S3 successfully"));
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      newFile,
+      "File uploaded to S3 successfully"
+    )
+  );
 });
+
 
 // ✅ Get all files
 const getFiles = asyncHandler(async (req, res) => {
@@ -59,7 +79,8 @@ const getFiles = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, files, "Files fetched successfully"));
 });
 
-// 🔐 Secure Download (Pre-signed URL)
+
+// 🔐 Download using fileId
 const getDownloadUrl = asyncHandler(async (req, res) => {
   const { fileId } = req.params;
 
@@ -69,7 +90,6 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
     throw new ApiError(404, "File not found");
   }
 
-  // extract key from S3 URL
   const key = file.fileUrl.split(".amazonaws.com/")[1];
 
   const command = new GetObjectCommand({
@@ -78,7 +98,7 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
   });
 
   const signedUrl = await getSignedUrl(s3, command, {
-    expiresIn: 60, // 60 seconds
+    expiresIn: 60,
   });
 
   res.status(200).json(
@@ -86,4 +106,44 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
   );
 });
 
-export { uploadFile, getFiles, getDownloadUrl };
+
+// 🔥 Access via 6-digit code
+const getFileByCode = asyncHandler(async (req, res) => {
+  const { code } = req.params;
+
+  const file = await File.findOne({ code });
+
+  if (!file) {
+    throw new ApiError(404, "Invalid code");
+  }
+
+  const key = file.fileUrl.split(".amazonaws.com/")[1];
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: key,
+  });
+
+  const signedUrl = await getSignedUrl(s3, command, {
+    expiresIn: 60,
+  });
+
+  // increment download count
+  file.downloadCount += 1;
+  await file.save();
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        fileName: file.fileName,
+        url: signedUrl,
+        downloads: file.downloadCount,
+      },
+      "File accessed via code"
+    )
+  );
+});
+
+
+export { uploadFile, getFiles, getDownloadUrl, getFileByCode };

@@ -19,8 +19,10 @@ const fileSchema = new mongoose.Schema(
   required: true,
     },
     code: {
-      type: String, // 6-digit access code
-    },
+  type: String,
+  required: true,
+  unique: true,
+     },
     expiryDate: {
       type: Date,
     },
