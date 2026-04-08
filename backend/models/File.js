@@ -12,11 +12,11 @@ const fileSchema = new mongoose.Schema(
       required: true,
     },
     filePath: {
-      type: String,
-      required: true,
+      type: String
     },
     fileUrl: {
-      type: String, // will be used later for S3
+  type: String,
+  required: true,
     },
     code: {
       type: String, // 6-digit access code
