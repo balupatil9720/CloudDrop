@@ -33,10 +33,19 @@ const fileSchema = new mongoose.Schema(
     uploadedBy: {
       type: String, // later: user ID (for auth)
     },
+    isGuest: {
+       type: Boolean,
+       default: true,
+    },
+    expiresAt: {
+       type: Date,
+      required: true,
+}
   },
   {
     timestamps: true, // adds createdAt & updatedAt
-  }
+  },
+  
 );
 
 const File = mongoose.model("File", fileSchema);

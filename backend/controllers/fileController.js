@@ -15,12 +15,13 @@ import s3 from "../config/s3.js";
 import { generateCode } from "../utils/generateCode.js";
 
 
-// ✅ Upload File (with 6-digit code)
+// ✅ Upload File (S3 + Code + Expiry)
 const uploadFile = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, "File is required");
   }
 
+  // read file
   const fileContent = fs.readFileSync(req.file.path);
 
   const fileKey = `uploads/${Date.now()}-${req.file.originalname}`;
@@ -41,30 +42,42 @@ const uploadFile = asyncHandler(async (req, res) => {
 
   const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
-  // 🔥 GENERATE UNIQUE CODE (FIXED)
+  // 🔥 Generate unique 6-digit code
   let code;
   let exists = true;
 
   while (exists) {
     code = generateCode();
-    const fileExists = await File.findOne({ code });
-    exists = !!fileExists;
+    const existingFile = await File.findOne({ code });
+    exists = !!existingFile;
   }
 
+  // 🔥 Expiry logic
+  const isGuest = true; // will change after auth
+
+  const expiryDays = isGuest ? 2 : 21;
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + expiryDays);
+
+  // save to DB
   const newFile = await File.create({
     fileName: req.file.originalname,
     fileSize: req.file.size,
     fileUrl,
     code,
+    isGuest,
+    expiresAt,
   });
 
+  // delete temp file
   fs.unlinkSync(req.file.path);
 
   res.status(201).json(
     new ApiResponse(
       201,
       newFile,
-      "File uploaded to S3 successfully"
+      "File uploaded successfully"
     )
   );
 });
@@ -74,9 +87,9 @@ const uploadFile = asyncHandler(async (req, res) => {
 const getFiles = asyncHandler(async (req, res) => {
   const files = await File.find().sort({ createdAt: -1 });
 
-  res
-    .status(200)
-    .json(new ApiResponse(200, files, "Files fetched successfully"));
+  res.status(200).json(
+    new ApiResponse(200, files, "Files fetched successfully")
+  );
 });
 
 
@@ -88,6 +101,11 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
 
   if (!file) {
     throw new ApiError(404, "File not found");
+  }
+
+  // ❌ block expired
+  if (new Date() > file.expiresAt) {
+    throw new ApiError(410, "File expired");
   }
 
   const key = file.fileUrl.split(".amazonaws.com/")[1];
@@ -102,7 +120,14 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
   });
 
   res.status(200).json(
-    new ApiResponse(200, { url: signedUrl }, "Download URL generated")
+    new ApiResponse(
+      200,
+      {
+        url: signedUrl,
+        expiresAt: file.expiresAt,
+      },
+      "Download URL generated"
+    )
   );
 });
 
@@ -115,6 +140,11 @@ const getFileByCode = asyncHandler(async (req, res) => {
 
   if (!file) {
     throw new ApiError(404, "Invalid code");
+  }
+
+  // ❌ block expired
+  if (new Date() > file.expiresAt) {
+    throw new ApiError(410, "File expired");
   }
 
   const key = file.fileUrl.split(".amazonaws.com/")[1];
@@ -139,6 +169,7 @@ const getFileByCode = asyncHandler(async (req, res) => {
         fileName: file.fileName,
         url: signedUrl,
         downloads: file.downloadCount,
+        expiresAt: file.expiresAt,
       },
       "File accessed via code"
     )

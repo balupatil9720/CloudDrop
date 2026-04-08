@@ -21,8 +21,7 @@ const FileList = () => {
       const res = await axios.get(`${API_BASE}/download/${id}`);
       window.open(res.data.data.url, "_blank");
     } catch (err) {
-      console.error(err);
-      alert("Download failed");
+      alert(err.response?.data?.message || "Download failed");
     }
   };
 
@@ -33,8 +32,7 @@ const FileList = () => {
       const res = await axios.get(`${API_BASE}/code/${codeInput}`);
       window.open(res.data.data.url, "_blank");
     } catch (err) {
-      console.error(err);
-      alert("Invalid or expired code");
+      alert(err.response?.data?.message || "Invalid code");
     }
   };
 
@@ -62,12 +60,12 @@ const FileList = () => {
             placeholder="Enter 6-digit code"
             value={codeInput}
             onChange={(e) => setCodeInput(e.target.value)}
-            className="flex-1 px-3 py-2 border rounded-lg focus:outline-none"
+            className="flex-1 px-3 py-2 border rounded-lg"
           />
 
           <button
             onClick={downloadByCode}
-            className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+            className="bg-green-500 text-white px-4 py-2 rounded-lg"
           >
             Get File
           </button>
@@ -75,55 +73,70 @@ const FileList = () => {
       </div>
 
       {/* 📂 FILE LIST */}
-      <div className="p-5 border border-gray-200 rounded-xl bg-gray-50 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">
+      <div className="p-5 border rounded-xl bg-gray-50 shadow-sm">
+        <h2 className="text-lg font-semibold mb-4">
           Uploaded Files
         </h2>
 
         {files.length === 0 ? (
-          <p className="text-gray-500 text-sm">No files uploaded yet</p>
+          <p>No files uploaded</p>
         ) : (
           <ul className="space-y-3">
-            {files.map((file) => (
-              <li
-                key={file._id}
-                className="flex flex-col md:flex-row md:justify-between md:items-center bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition"
-              >
-                <div className="flex flex-col gap-1">
-                  <span className="text-gray-800 font-medium">
-                    {file.fileName}
-                  </span>
+            {files.map((file) => {
+              const isExpired = new Date() > new Date(file.expiresAt);
 
-                  <span className="text-xs text-gray-500">
-                    {(file.fileSize / 1024).toFixed(2)} KB
-                  </span>
+              return (
+                <li
+                  key={file._id}
+                  className="bg-white p-4 rounded-lg shadow flex justify-between"
+                >
+                  <div>
+                    <p className="font-medium">{file.fileName}</p>
 
-                  {/* 🔢 CODE DISPLAY */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs bg-gray-200 px-2 py-1 rounded">
-                      Code: {file.code}
-                    </span>
+                    <p className="text-xs text-gray-500">
+                      {(file.fileSize / 1024).toFixed(2)} KB
+                    </p>
 
-                    <button
-                      onClick={() => copyCode(file.code)}
-                      className="text-xs text-blue-500 hover:underline"
-                    >
-                      Copy
-                    </button>
+                    <p className="text-xs">
+                      Expires:{" "}
+                      {new Date(file.expiresAt).toLocaleDateString()}
+                    </p>
+
+                    {/* 🔴 expired badge */}
+                    {isExpired && (
+                      <span className="text-red-500 text-xs font-semibold">
+                        Expired
+                      </span>
+                    )}
+
+                    <div className="mt-1 flex gap-2 items-center">
+                      <span className="bg-gray-200 px-2 py-1 text-xs rounded">
+                        {file.code}
+                      </span>
+
+                      <button
+                        onClick={() => copyCode(file.code)}
+                        className="text-blue-500 text-xs"
+                      >
+                        Copy
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* 🔘 ACTIONS */}
-                <div className="mt-3 md:mt-0 flex gap-2">
                   <button
+                    disabled={isExpired}
                     onClick={() => downloadFile(file._id)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600"
+                    className={`px-3 py-1 rounded text-white text-sm ${
+                      isExpired
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-500 hover:bg-blue-600"
+                    }`}
                   >
                     Download
                   </button>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
