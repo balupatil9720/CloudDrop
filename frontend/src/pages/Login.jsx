@@ -26,7 +26,7 @@ const Login = ({ setToken }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-blue-600 to-indigo-600">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-linear-to-r from-blue-600 to-indigo-600">
 
       <h1 className="text-4xl font-bold text-white mb-6">
         ☁️ CloudDrop

@@ -47,7 +47,7 @@ const FileList = () => {
     <div className="space-y-8">
 
       {/* 🔐 ACCESS VIA CODE */}
-      <div className="bg-gradient-to-r from-indigo-500 to-blue-500 p-6 rounded-2xl shadow-lg text-white">
+      <div className="bg-linear-to-r from-indigo-500 to-blue-500 p-6 rounded-2xl shadow-lg text-white">
         <h2 className="text-xl font-semibold mb-3">
           🔑 Access File via Code
         </h2>
