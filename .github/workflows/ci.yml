@@ -1,0 +1,44 @@
+name: CloudDrop CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Setup Node (for optional checks)
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # 3. Install backend deps (optional but good)
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm install
+
+      # 4. Install frontend deps (optional)
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm install
+
+      # 5. Build backend Docker image
+      - name: Build Backend Docker Image
+        run: docker build -t clouddrop-backend ./backend
+
+      # 6. Build frontend Docker image
+      - name: Build Frontend Docker Image
+        run: docker build -t clouddrop-frontend ./frontend
+
+      # 7. Success message
+      - name: Build Success
+        run: echo "Docker images built successfully 🚀"
