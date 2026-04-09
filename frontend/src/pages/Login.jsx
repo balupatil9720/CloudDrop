@@ -17,7 +17,7 @@ const Login = ({ setToken }) => {
       const token = res.data.data.token;
 
       localStorage.setItem("token", token);
-      setToken(token); // 🔥 IMPORTANT
+      setToken(token);
 
       navigate("/dashboard");
     } catch (err) {
@@ -26,9 +26,17 @@ const Login = ({ setToken }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-blue-600 to-indigo-600">
+
+      <h1 className="text-4xl font-bold text-white mb-6">
+        ☁️ CloudDrop
+      </h1>
+
       <div className="bg-white p-8 rounded-2xl shadow-xl w-96 space-y-5">
-        <h2 className="text-2xl font-bold text-center text-blue-600">Login</h2>
+
+        <h2 className="text-2xl font-bold text-center text-blue-600">
+          Welcome Back
+        </h2>
 
         <input
           name="email"

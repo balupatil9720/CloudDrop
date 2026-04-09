@@ -17,7 +17,7 @@ const Signup = ({ setToken }) => {
       const token = res.data.data.token;
 
       localStorage.setItem("token", token);
-      setToken(token); // 🔥 IMPORTANT
+      setToken(token);
 
       navigate("/dashboard");
     } catch (err) {
@@ -26,13 +26,21 @@ const Signup = ({ setToken }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-green-500 to-emerald-600">
+
+      <h1 className="text-4xl font-bold text-white mb-6">
+        ☁️ CloudDrop
+      </h1>
+
       <div className="bg-white p-8 rounded-2xl shadow-xl w-96 space-y-5">
-        <h2 className="text-2xl font-bold text-center text-green-600">Signup</h2>
+
+        <h2 className="text-2xl font-bold text-center text-green-600">
+          Create Account
+        </h2>
 
         <input
           name="name"
-          placeholder="Name"
+          placeholder="Full Name"
           onChange={handleChange}
           className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-400"
         />

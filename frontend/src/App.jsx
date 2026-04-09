@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import Upload from "./components/Upload";
 import FileList from "./components/FileList";
@@ -8,13 +8,13 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Landing from "./pages/Landing";
 
-// 🔐 Dashboard Component
+// 🔐 Dashboard
 const Dashboard = ({ refreshKey, refresh, setToken }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
-    setToken(null); // 🔥 update state
+    setToken(null);
     navigate("/");
   };
 
@@ -22,7 +22,6 @@ const Dashboard = ({ refreshKey, refresh, setToken }) => {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 flex items-center justify-center p-6">
       <div className="w-full max-w-3xl bg-white shadow-xl rounded-2xl p-6 space-y-6">
 
-        {/* Header */}
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-blue-600">
             ☁️ CloudDrop
@@ -36,7 +35,6 @@ const Dashboard = ({ refreshKey, refresh, setToken }) => {
           </button>
         </div>
 
-        {/* Upload + Files */}
         <Upload onUploadSuccess={refresh} />
         <FileList key={refreshKey} />
       </div>
@@ -47,8 +45,11 @@ const Dashboard = ({ refreshKey, refresh, setToken }) => {
 function App() {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // 🔥 Reactive token
   const [token, setToken] = useState(localStorage.getItem("token"));
+
+  useEffect(() => {
+    setToken(localStorage.getItem("token"));
+  }, []);
 
   const refresh = () => {
     setRefreshKey((prev) => prev + 1);
@@ -80,13 +81,17 @@ function App() {
         {/* Login */}
         <Route
           path="/login"
-          element={<Login setToken={setToken} />}
+          element={
+            token ? <Navigate to="/dashboard" /> : <Login setToken={setToken} />
+          }
         />
 
         {/* Signup */}
         <Route
           path="/signup"
-          element={<Signup setToken={setToken} />}
+          element={
+            token ? <Navigate to="/dashboard" /> : <Signup setToken={setToken} />
+          }
         />
 
       </Routes>
