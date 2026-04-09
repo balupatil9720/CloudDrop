@@ -1,11 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../utils/api";
 
-const Login = () => {
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-  });
+const Login = ({ setToken }) => {
+  const [form, setForm] = useState({ email: "", password: "" });
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -15,25 +14,27 @@ const Login = () => {
     try {
       const res = await api.post("/auth/login", form);
 
-      localStorage.setItem("token", res.data.data.token);
+      const token = res.data.data.token;
 
-      alert("Login successful");
-      window.location.href = "/";
+      localStorage.setItem("token", token);
+      setToken(token); // 🔥 IMPORTANT
+
+      navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-      <div className="bg-white p-6 rounded-xl shadow w-80 space-y-4">
-        <h2 className="text-xl font-semibold text-center">Login</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 to-indigo-600">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-96 space-y-5">
+        <h2 className="text-2xl font-bold text-center text-blue-600">Login</h2>
 
         <input
           name="email"
           placeholder="Email"
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
         />
 
         <input
@@ -41,15 +42,22 @@ const Login = () => {
           type="password"
           placeholder="Password"
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded"
+          className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-400"
         />
 
         <button
           onClick={handleLogin}
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
         >
           Login
         </button>
+
+        <p className="text-sm text-center">
+          Don’t have an account?{" "}
+          <Link to="/signup" className="text-blue-500 font-semibold">
+            Signup
+          </Link>
+        </p>
       </div>
     </div>
   );

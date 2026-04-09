@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 import Upload from "./components/Upload";
@@ -6,18 +6,19 @@ import FileList from "./components/FileList";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import Landing from "./pages/Landing";
 
-function App() {
-  const [refreshKey, setRefreshKey] = useState(0);
+// 🔐 Dashboard Component
+const Dashboard = ({ refreshKey, refresh, setToken }) => {
+  const navigate = useNavigate();
 
-  const refresh = () => {
-    setRefreshKey((prev) => prev + 1);
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setToken(null); // 🔥 update state
+    navigate("/");
   };
 
-  const token = localStorage.getItem("token");
-
-  // 🔐 Protected Layout
-  const Dashboard = () => (
+  return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 flex items-center justify-center p-6">
       <div className="w-full max-w-3xl bg-white shadow-xl rounded-2xl p-6 space-y-6">
 
@@ -27,43 +28,66 @@ function App() {
             ☁️ CloudDrop
           </h1>
 
-          {/* Logout */}
           <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              window.location.href = "/login";
-            }}
+            onClick={handleLogout}
             className="text-sm bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600"
           >
             Logout
           </button>
         </div>
 
-        {/* Upload */}
+        {/* Upload + Files */}
         <Upload onUploadSuccess={refresh} />
-
-        {/* Files */}
         <FileList key={refreshKey} />
       </div>
     </div>
   );
+};
+
+function App() {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // 🔥 Reactive token
+  const [token, setToken] = useState(localStorage.getItem("token"));
+
+  const refresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   return (
     <BrowserRouter>
       <Routes>
 
-        {/* Protected Route */}
+        {/* Landing */}
+        <Route path="/" element={<Landing />} />
+
+        {/* Dashboard */}
         <Route
-          path="/"
-          element={token ? <Dashboard /> : <Navigate to="/login" />}
+          path="/dashboard"
+          element={
+            token ? (
+              <Dashboard
+                refreshKey={refreshKey}
+                refresh={refresh}
+                setToken={setToken}
+              />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
         />
 
-        {/* Auth Routes */}
+        {/* Login */}
         <Route
           path="/login"
-          element={token ? <Navigate to="/" /> : <Login />}
-         />
-        <Route path="/signup" element={<Signup />} />
+          element={<Login setToken={setToken} />}
+        />
+
+        {/* Signup */}
+        <Route
+          path="/signup"
+          element={<Signup setToken={setToken} />}
+        />
 
       </Routes>
     </BrowserRouter>
