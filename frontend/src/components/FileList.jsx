@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../utils/api";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -9,7 +9,7 @@ const FileList = () => {
 
   const fetchFiles = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/files`);
+      const res = await api.get(`${API_BASE}/files`);
       setFiles(res.data.data);
     } catch (err) {
       console.error(err);
@@ -18,7 +18,7 @@ const FileList = () => {
 
   const downloadFile = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE}/download/${id}`);
+      const res = await api.get(`${API_BASE}/files/download/${id}`);
       window.open(res.data.data.url, "_blank");
     } catch (err) {
       alert(err.response?.data?.message || "Download failed");
@@ -29,7 +29,7 @@ const FileList = () => {
     if (!codeInput) return alert("Enter code");
 
     try {
-      const res = await axios.get(`${API_BASE}/code/${codeInput}`);
+      const res = await api.get(`${API_BASE}/files/code/${codeInput}`);
       window.open(res.data.data.url, "_blank");
     } catch (err) {
       alert(err.response?.data?.message || "Invalid code");

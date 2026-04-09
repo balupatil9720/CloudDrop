@@ -53,7 +53,7 @@ const uploadFile = asyncHandler(async (req, res) => {
   }
 
   // 🔥 Expiry logic
-  const isGuest = true; // will change after auth
+  const isGuest = !req.user; // changed to role based access
 
   const expiryDays = isGuest ? 2 : 21;
 

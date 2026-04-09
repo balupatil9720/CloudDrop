@@ -6,6 +6,7 @@ import {
   getFileByCode
 } from "../controllers/fileController.js";
 import { upload } from "../middlewares/multer.middleware.js";
+import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -13,7 +14,7 @@ const router = express.Router();
 router.post("/upload", upload.single("file"), uploadFile);
 
 // ✅ Get all files
-router.get("/files", getFiles);
+router.get("/", getFiles);
 
 // 🔐 Secure download
 router.get("/download/:fileId", getDownloadUrl);

@@ -8,11 +8,11 @@ const errorHandler = (err, req, res, next) => {
       errors: err.errors,
     });
   }
-
+  console.log(err);
   return res.status(500).json({
     success: false,
     message: err.message || "Internal Server Error",
   });
 };
 
-export { errorHandler };
+export default errorHandler;

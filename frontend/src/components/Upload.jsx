@@ -1,7 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../utils/api";
 
 const Upload = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
@@ -16,13 +14,18 @@ const Upload = ({ onUploadSuccess }) => {
     try {
       setLoading(true);
 
-      await axios.post(`${API_BASE}/upload`, formData);
+      await api.post("/files/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-      onUploadSuccess();
+      alert("Upload successful");
       setFile(null);
+      onUploadSuccess();
     } catch (err) {
       console.error(err);
-      alert("Upload failed");
+      alert(err.response?.data?.message || "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -40,6 +43,13 @@ const Upload = ({ onUploadSuccess }) => {
           onChange={(e) => setFile(e.target.files[0])}
           className="block w-full text-sm border border-gray-300 rounded-lg p-2 cursor-pointer bg-white"
         />
+
+        {/* 📄 Selected file name */}
+        {file && (
+          <p className="text-xs text-gray-600">
+            Selected: <span className="font-medium">{file.name}</span>
+          </p>
+        )}
 
         <button
           onClick={handleUpload}
