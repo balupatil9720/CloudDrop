@@ -116,7 +116,15 @@ const FileList = () => {
                       </span>
                     )}
                   </div>
-
+                          <span
+  className={`inline-block mt-1 text-xs px-2 py-1 rounded ${
+    file.isGuest
+      ? "bg-yellow-100 text-yellow-700"
+      : "bg-blue-100 text-blue-700"
+  }`}
+>
+  {file.isGuest ? "🟡 Guest (2 days)" : "🔵 User (21 days)"}
+</span>
                   {/* Code + Actions */}
                   <div className="mt-4 flex justify-between items-center">
 

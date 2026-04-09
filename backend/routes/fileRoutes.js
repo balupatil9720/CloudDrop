@@ -7,15 +7,17 @@ import {
 } from "../controllers/fileController.js";
 
 import { upload } from "../middlewares/multer.middleware.js";
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect, optionalAuth } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// 🔥 Protected routes
-router.post("/upload", protect, upload.single("file"), uploadFile);
+// 🔥 Upload → guest + user allowed
+router.post("/upload", optionalAuth, upload.single("file"), uploadFile);
+
+// 🔐 Only logged-in users can see their files
 router.get("/", protect, getFiles);
 
-// 🔐 Protected download
+// 🔐 Secure download
 router.get("/download/:fileId", protect, getDownloadUrl);
 
 // 🌐 Public access via code

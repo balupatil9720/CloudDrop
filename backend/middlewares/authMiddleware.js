@@ -1,15 +1,14 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
+// 🔐 Strict auth (for protected routes)
 const protect = async (req, res, next) => {
   try {
-    let token;
-
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
     ) {
-      token = req.headers.authorization.split(" ")[1];
+      const token = req.headers.authorization.split(" ")[1];
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -28,4 +27,24 @@ const protect = async (req, res, next) => {
   }
 };
 
-export { protect };
+// 🔥 OPTIONAL AUTH (for guest + user support)
+const optionalAuth = async (req, res, next) => {
+  try {
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      const token = req.headers.authorization.split(" ")[1];
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      req.user = await User.findById(decoded.id).select("-password");
+    }
+
+    next(); // always continue
+  } catch (error) {
+    next(); // ignore errors → treat as guest
+  }
+};
+
+export { protect, optionalAuth };
