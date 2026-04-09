@@ -12,17 +12,17 @@ const fileSchema = new mongoose.Schema(
       required: true,
     },
     filePath: {
-      type: String
+      type: String,
     },
     fileUrl: {
-  type: String,
-  required: true,
+      type: String,
+      required: true,
     },
     code: {
-  type: String,
-  required: true,
-  unique: true,
-     },
+      type: String,
+      required: true,
+      unique: true,
+    },
     expiryDate: {
       type: Date,
     },
@@ -30,22 +30,26 @@ const fileSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    // 🔥 FIXED (IMPORTANT)
     uploadedBy: {
-      type: String, // later: user ID (for auth)
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
+
     isGuest: {
-       type: Boolean,
-       default: true,
+      type: Boolean,
+      default: true,
     },
+
     expiresAt: {
-       type: Date,
+      type: Date,
       required: true,
-}
+    },
   },
   {
-    timestamps: true, // adds createdAt & updatedAt
-  },
-  
+    timestamps: true,
+  }
 );
 
 const File = mongoose.model("File", fileSchema);

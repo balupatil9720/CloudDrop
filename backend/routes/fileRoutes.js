@@ -5,21 +5,20 @@ import {
   getDownloadUrl,
   getFileByCode
 } from "../controllers/fileController.js";
+
 import { upload } from "../middlewares/multer.middleware.js";
 import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// ✅ Upload
-router.post("/upload", upload.single("file"), uploadFile);
+// 🔥 Protected routes
+router.post("/upload", protect, upload.single("file"), uploadFile);
+router.get("/", protect, getFiles);
 
-// ✅ Get all files
-router.get("/", getFiles);
+// 🔐 Protected download
+router.get("/download/:fileId", protect, getDownloadUrl);
 
-// 🔐 Secure download
-router.get("/download/:fileId", getDownloadUrl);
-
-// Access through 6 digit unique code
+// 🌐 Public access via code
 router.get("/code/:code", getFileByCode);
 
 export default router;

@@ -14,14 +14,12 @@ import s3 from "../config/s3.js";
 
 import { generateCode } from "../utils/generateCode.js";
 
-
-// ✅ Upload File (S3 + Code + Expiry)
+// ✅ Upload File
 const uploadFile = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, "File is required");
   }
 
-  // read file
   const fileContent = fs.readFileSync(req.file.path);
 
   const fileKey = `uploads/${Date.now()}-${req.file.originalname}`;
@@ -33,16 +31,11 @@ const uploadFile = asyncHandler(async (req, res) => {
     ContentType: req.file.mimetype,
   });
 
-  try {
-    await s3.send(command);
-  } catch (error) {
-    console.error("S3 ERROR:", error);
-    throw new ApiError(500, error.message);
-  }
+  await s3.send(command);
 
   const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
-  // 🔥 Generate unique 6-digit code
+  // 🔥 Unique code
   let code;
   let exists = true;
 
@@ -52,15 +45,14 @@ const uploadFile = asyncHandler(async (req, res) => {
     exists = !!existingFile;
   }
 
-  // 🔥 Expiry logic
-  const isGuest = !req.user; // changed to role based access
+  const isGuest = !req.user;
 
   const expiryDays = isGuest ? 2 : 21;
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + expiryDays);
 
-  // save to DB
+  // 🔥 IMPORTANT FIX
   const newFile = await File.create({
     fileName: req.file.originalname,
     fileSize: req.file.size,
@@ -68,32 +60,32 @@ const uploadFile = asyncHandler(async (req, res) => {
     code,
     isGuest,
     expiresAt,
+    uploadedBy: req.user?._id || null,
   });
 
-  // delete temp file
   fs.unlinkSync(req.file.path);
 
   res.status(201).json(
-    new ApiResponse(
-      201,
-      newFile,
-      "File uploaded successfully"
-    )
+    new ApiResponse(201, newFile, "File uploaded successfully")
   );
 });
 
-
-// ✅ Get all files
+// ✅ Get user-specific files
 const getFiles = asyncHandler(async (req, res) => {
-  const files = await File.find().sort({ createdAt: -1 });
+  if (!req.user) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const files = await File.find({
+    uploadedBy: req.user._id,
+  }).sort({ createdAt: -1 });
 
   res.status(200).json(
     new ApiResponse(200, files, "Files fetched successfully")
   );
 });
 
-
-// 🔐 Download using fileId
+// 🔐 Download
 const getDownloadUrl = asyncHandler(async (req, res) => {
   const { fileId } = req.params;
 
@@ -103,7 +95,11 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
     throw new ApiError(404, "File not found");
   }
 
-  // ❌ block expired
+  // 🔥 Ownership check
+  if (file.uploadedBy && file.uploadedBy.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "Access denied");
+  }
+
   if (new Date() > file.expiresAt) {
     throw new ApiError(410, "File expired");
   }
@@ -122,17 +118,13 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
-      {
-        url: signedUrl,
-        expiresAt: file.expiresAt,
-      },
+      { url: signedUrl, expiresAt: file.expiresAt },
       "Download URL generated"
     )
   );
 });
 
-
-// 🔥 Access via 6-digit code
+// 🔥 Access via code (public)
 const getFileByCode = asyncHandler(async (req, res) => {
   const { code } = req.params;
 
@@ -142,7 +134,6 @@ const getFileByCode = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Invalid code");
   }
 
-  // ❌ block expired
   if (new Date() > file.expiresAt) {
     throw new ApiError(410, "File expired");
   }
@@ -158,7 +149,6 @@ const getFileByCode = asyncHandler(async (req, res) => {
     expiresIn: 60,
   });
 
-  // increment download count
   file.downloadCount += 1;
   await file.save();
 
@@ -175,6 +165,5 @@ const getFileByCode = asyncHandler(async (req, res) => {
     )
   );
 });
-
 
 export { uploadFile, getFiles, getDownloadUrl, getFileByCode };
