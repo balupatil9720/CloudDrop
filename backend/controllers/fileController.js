@@ -56,6 +56,7 @@ const uploadFile = asyncHandler(async (req, res) => {
     fileName: req.file.originalname,
     fileSize: req.file.size,
     fileUrl,
+    fileKey,
     code,
     isGuest,
     expiresAt,

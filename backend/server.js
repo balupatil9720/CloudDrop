@@ -4,12 +4,15 @@ dotenv.config();   // 🔥 NO path, no extras
 import connectDB from "./config/db.js";
 import app from "./app.js";
 
+import startCronJob from "./utils/cronJobs.js";
+
 const startServer = async () => {
   try {
     await connectDB();
 
-    console.log("ACCESS:", process.env.AWS_ACCESS_KEY_ID);
-    console.log("SECRET:", process.env.AWS_SECRET_ACCESS_KEY);
+    startCronJob(); 
+
+    
 
     const PORT = process.env.PORT || 5000;
 

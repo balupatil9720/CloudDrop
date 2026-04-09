@@ -18,6 +18,11 @@ const fileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    fileKey: {
+      type: String, // 🔥 ADD THIS (VERY IMPORTANT)
+    },
+
     code: {
       type: String,
       required: true,
@@ -30,18 +35,14 @@ const fileSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
-    // 🔥 FIXED (IMPORTANT)
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-
     isGuest: {
       type: Boolean,
       default: true,
     },
-
     expiresAt: {
       type: Date,
       required: true,
