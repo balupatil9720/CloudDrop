@@ -1,0 +1,36 @@
+services:
+  backend:
+    build: ./backend
+    container_name: clouddrop_backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./frontend
+    container_name: clouddrop_frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host   # 🔥 IMPORTANT (Vite fix)
+
+  mongo:
+    image: mongo
+    container_name: clouddrop_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
