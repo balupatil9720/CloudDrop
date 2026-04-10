@@ -55,7 +55,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-green-700 text-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex flex-col">
 
       {/* Navbar */}
       <div className="flex justify-between items-center px-8 py-5">
