@@ -3,40 +3,47 @@ import api from "../utils/api";
 
 const FileList = () => {
   const [files, setFiles] = useState([]);
-  const [codeInput, setCodeInput] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchFiles = async () => {
     try {
-      const res = await api.get("/files");
-      setFiles(res.data.data);
-    } catch (err) {
-      console.error(err);
+      const response = await api.get("/files");
+      setFiles(response.data.data);
+    } catch (error) {
+      console.error("Failed to fetch files:", error);
     }
   };
 
-  const downloadFile = async (id) => {
+  const handleFileDownload = async (id) => {
     try {
-      const res = await api.get(`/files/download/${id}`);
-      window.open(res.data.data.url, "_blank");
-    } catch (err) {
-      alert(err.response?.data?.message || "Download failed");
+      const response = await api.get(`/files/download/${id}`);
+      window.open(response.data.data.url, "_blank");
+    } catch (error) {
+      alert(error.response?.data?.message || "Download failed. Please try again.");
     }
   };
 
-  const downloadByCode = async () => {
-    if (!codeInput) return alert("Enter code");
+  const handleCodeDownload = async () => {
+    if (!accessCode.trim()) {
+      alert("Please enter an access code");
+      return;
+    }
 
     try {
-      const res = await api.get(`/files/code/${codeInput}`);
-      window.open(res.data.data.url, "_blank");
-    } catch (err) {
-      alert(err.response?.data?.message || "Invalid code");
+      setIsLoading(true);
+      const response = await api.get(`/files/code/${accessCode}`);
+      window.open(response.data.data.url, "_blank");
+      setAccessCode("");
+    } catch (error) {
+      alert(error.response?.data?.message || "Invalid or expired access code");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const copyCode = (code) => {
+  const copyToClipboard = (code) => {
     navigator.clipboard.writeText(code);
-    alert("Code copied!");
   };
 
   useEffect(() => {
@@ -45,114 +52,154 @@ const FileList = () => {
 
   return (
     <div className="space-y-8">
+      
+      {/* Access Code Section */}
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg overflow-hidden">
+        <div className="px-6 py-5">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold">Quick Access</h3>
+              <p className="text-white/80 text-xs">Retrieve any file using its access code</p>
+            </div>
+          </div>
 
-      {/* 🔐 ACCESS VIA CODE */}
-      <div className="bg-linear-to-r from-indigo-500 to-blue-500 p-6 rounded-2xl shadow-lg text-white">
-        <h2 className="text-xl font-semibold mb-3">
-          🔑 Access File via Code
-        </h2>
-
-        <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Enter 6-digit code"
-            value={codeInput}
-            onChange={(e) => setCodeInput(e.target.value)}
-            className="flex-1 px-4 py-2 rounded-lg text-black outline-none"
-          />
-
-          <button
-            onClick={downloadByCode}
-            className="bg-white text-blue-600 px-5 py-2 rounded-lg font-semibold hover:bg-gray-200 transition"
-          >
-            Get File
-          </button>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="Enter 6-digit access code"
+              value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value.toUpperCase().slice(0, 6))}
+              className="flex-1 px-4 py-2.5 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-white/50 font-mono text-center tracking-wider"
+              maxLength={6}
+            />
+            <button
+              onClick={handleCodeDownload}
+              disabled={isLoading}
+              className="bg-white text-indigo-600 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm whitespace-nowrap"
+            >
+              {isLoading ? "Processing..." : "Retrieve"}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 📂 FILE LIST */}
+      {/* File List Section */}
       <div>
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">
-          📂 Uploaded Files
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Your Files</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Manage and track your uploaded files</p>
+          </div>
+          <div className="text-sm text-gray-400">
+            {files.length} {files.length === 1 ? "file" : "files"}
+          </div>
+        </div>
 
         {files.length === 0 ? (
-          <div className="text-center text-gray-500 py-10">
-            No files uploaded yet 🚀
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
+            <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+            </svg>
+            <p className="text-gray-500 font-medium">No files uploaded yet</p>
+            <p className="text-sm text-gray-400 mt-1">Upload your first file to get started</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-5">
             {files.map((file) => {
               const isExpired = new Date() > new Date(file.expiresAt);
+              const fileSizeKB = (file.fileSize / 1024).toFixed(2);
+              const fileSizeMB = (file.fileSize / (1024 * 1024)).toFixed(2);
+              const displaySize = file.fileSize > 1024 * 1024 ? `${fileSizeMB} MB` : `${fileSizeKB} KB`;
 
               return (
                 <div
                   key={file._id}
-                  className="bg-white p-5 rounded-2xl shadow hover:shadow-lg transition border"
+                  className={`bg-white rounded-xl shadow-lg border transition-all ${
+                    isExpired ? "border-gray-200 opacity-75" : "border-gray-200 hover:shadow-xl"
+                  }`}
                 >
-                  {/* File Info */}
-                  <div className="space-y-1">
-                    <p className="font-semibold text-gray-800">
-                      {file.fileName}
-                    </p>
-
-                    <p className="text-xs text-gray-500">
-                      {(file.fileSize / 1024).toFixed(2)} KB
-                    </p>
-
-                    <p className="text-xs text-gray-500">
-                      Expires:{" "}
-                      {new Date(file.expiresAt).toLocaleDateString()}
-                    </p>
-
-                    {/* Status */}
-                    {isExpired ? (
-                      <span className="inline-block mt-1 text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
-                        Expired
-                      </span>
-                    ) : (
-                      <span className="inline-block mt-1 text-xs bg-green-100 text-green-600 px-2 py-1 rounded">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                          <span
-  className={`inline-block mt-1 text-xs px-2 py-1 rounded ${
-    file.isGuest
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-blue-100 text-blue-700"
-  }`}
->
-  {file.isGuest ? "🟡 Guest (2 days)" : "🔵 User (21 days)"}
-</span>
-                  {/* Code + Actions */}
-                  <div className="mt-4 flex justify-between items-center">
-
-                    {/* Code */}
-                    <div className="flex items-center gap-2">
-                      <span className="bg-gray-200 px-3 py-1 text-sm rounded-lg font-mono">
-                        {file.code}
-                      </span>
-
-                      <button
-                        onClick={() => copyCode(file.code)}
-                        className="text-blue-500 text-xs hover:underline"
-                      >
-                        Copy
-                      </button>
+                  <div className="p-5">
+                    {/* File Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          file.isGuest ? "bg-amber-100" : "bg-indigo-100"
+                        }`}>
+                          <svg className={`w-5 h-5 ${
+                            file.isGuest ? "text-amber-600" : "text-indigo-600"
+                          }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 line-clamp-1">
+                            {file.fileName}
+                          </h3>
+                          <p className="text-xs text-gray-500">{displaySize}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Status Badges */}
+                      <div className="flex flex-col items-end gap-1">
+                        {isExpired ? (
+                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
+                            Expired
+                          </span>
+                        ) : (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                            Active
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          file.isGuest
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-indigo-100 text-indigo-700"
+                        }`}>
+                          {file.isGuest ? "Guest (2 days)" : "Premium (21 days)"}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Download */}
+                    {/* File Details */}
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">Expires on:</span>
+                        <span className="text-gray-700 font-medium">
+                          {new Date(file.expiresAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">Access Code:</span>
+                        <div className="flex items-center space-x-2">
+                          <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono font-bold text-gray-800">
+                            {file.code}
+                          </code>
+                          <button
+                            onClick={() => copyToClipboard(file.code)}
+                            className="text-indigo-600 hover:text-indigo-700 text-xs font-medium"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
                     <button
                       disabled={isExpired}
-                      onClick={() => downloadFile(file._id)}
-                      className={`px-4 py-1.5 rounded-lg text-white text-sm transition ${
+                      onClick={() => handleFileDownload(file._id)}
+                      className={`w-full py-2.5 rounded-lg font-medium text-sm transition-all ${
                         isExpired
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-blue-500 hover:bg-blue-600"
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-sm"
                       }`}
                     >
-                      Download
+                      {isExpired ? "File Expired" : "Download File"}
                     </button>
                   </div>
                 </div>
