@@ -43,6 +43,6 @@ jobs:
           script: |
             cd CloudDrop
             docker compose down
-            docker pull ${{ secrets.DOCKER_USERNAME }}/clouddrop-backend
-            docker pull ${{ secrets.DOCKER_USERNAME }}/clouddrop-frontend
-            docker compose up -d
+            docker compose pull
+            docker compose up -d --force-recreate
+            docker image prune -f
