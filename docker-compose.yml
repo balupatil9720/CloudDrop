@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   backend:
-    image: balupatil999/clouddrop-backend
+    image: balupatil999/clouddrop-backend:${TAG}
     container_name: clouddrop_backend
     ports:
       - "5000:5000"
@@ -12,7 +12,7 @@ services:
       - mongo
 
   frontend:
-    image: balupatil999/clouddrop-frontend
+    image: balupatil999/clouddrop-frontend:${TAG}
     container_name: clouddrop_frontend
     ports:
       - "5173:5173"
