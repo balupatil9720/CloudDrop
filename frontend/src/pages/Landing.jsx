@@ -55,7 +55,7 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 to-green-700 text-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-400 to-green-700 text-white flex flex-col">
 
       {/* Navbar */}
       <div className="flex justify-between items-center px-8 py-5">
@@ -95,7 +95,7 @@ const Landing = () => {
 
             <button
               onClick={handleDownload}
-              className="bg-white text-red-600 px-4 py-2 rounded"
+              className="bg-white text-violet-700 px-4 py-2 rounded"
             >
               Get
             </button>
