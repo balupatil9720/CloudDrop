@@ -1,6 +1,8 @@
+version: "3.8"
+
 services:
   backend:
-    build: ./backend
+    image: balupatil999/clouddrop-backend
     container_name: clouddrop_backend
     ports:
       - "5000:5000"
@@ -8,21 +10,14 @@ services:
       - ./backend/.env.docker
     depends_on:
       - mongo
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
 
   frontend:
-    build: ./frontend
+    image: balupatil999/clouddrop-frontend
     container_name: clouddrop_frontend
     ports:
       - "5173:5173"
     depends_on:
       - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- --host   # 🔥 IMPORTANT (Vite fix)
 
   mongo:
     image: mongo
