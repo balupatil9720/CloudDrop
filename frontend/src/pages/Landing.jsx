@@ -349,12 +349,6 @@ const Landing = () => {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-16 pt-8 border-t border-gray-200 text-center">
-          <p className="text-xs text-gray-400">
-            © 2024 CloudDrop. Enterprise-grade file sharing with end-to-end encryption.
-          </p>
-        </div>
       </main>
 
       {/* Confirmation Modal */}
