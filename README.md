@@ -40,7 +40,6 @@
 * Upload files using Multer
 * Store files in AWS S3
 * Generate pre-signed download URLs
-* Track downloads
 * Access via unique 6-digit code
 
 ---
@@ -51,19 +50,6 @@
 * Protected routes
 * Expiry-based file lifecycle
 * Cron job for auto-deletion of expired files (MongoDB + S3)
-
----
-
-### 🎨 Frontend
-
-* Landing page (guest upload + access)
-* Login / Signup pages
-* User dashboard
-* Upload modal with:
-
-  * File code display
-  * Copy button
-* File listing UI
 
 ---
 
@@ -102,10 +88,6 @@
 * Docker Compose
 * GitHub Actions (CI/CD)
 * AWS EC2
-
-### 🔹 Infrastructure
-
-* Terraform (EC2, S3, Security Groups)
 
 ---
 
@@ -180,21 +162,6 @@ AWS_SECRET_ACCESS_KEY=your_secret
 
 ---
 
-## 🐳 Docker Setup
-
-### Run Application
-
-```
-docker compose up --build
-```
-
-### Services
-
-* Frontend → http://localhost:5173
-* Backend → http://localhost:5000
-
----
-
 ## 🚀 CI/CD Pipeline
 
 Triggered on push to `main`.
@@ -251,7 +218,7 @@ terraform apply
 | Advanced Upload      | ❌      |
 | Docker               | ✅      |
 | CI/CD                | ✅      |
-| Terraform            | ✅      |
+| Terraform            | ❌      |
 
 ---
 
@@ -273,9 +240,9 @@ terraform apply
 
 ![Upload](./screenshots/upload.png)
 
-### 📂 Files
+### 📂 Signup
 
-![Files](./screenshots/files.png)
+![Signup](./screenshots/signup.png)
 
 ---
 
@@ -316,9 +283,3 @@ terraform apply
 
 ---
 
-## ⭐ Acknowledgement
-
-Inspired by:
-
-* WeTransfer
-* Google Drive
