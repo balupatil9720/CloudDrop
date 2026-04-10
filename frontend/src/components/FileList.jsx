@@ -167,12 +167,7 @@ const FileList = () => {
 
                     {/* File Details */}
                     <div className="space-y-2 mb-4">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">Expires on:</span>
-                        <span className="text-gray-700 font-medium">
-                          {new Date(file.expiresAt).toLocaleDateString()}
-                        </span>
-                      </div>
+                      
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500">Access Code:</span>
                         <div className="flex items-center space-x-2">
