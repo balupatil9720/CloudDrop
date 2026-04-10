@@ -95,7 +95,7 @@ const Landing = () => {
 
             <button
               onClick={handleDownload}
-              className="bg-white text-blue-600 px-4 py-2 rounded"
+              className="bg-white text-red-600 px-4 py-2 rounded"
             >
               Get
             </button>
