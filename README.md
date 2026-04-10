@@ -12,7 +12,7 @@
 
 ## 🌐 Live Demo
 
-👉 http://<EC2_PUBLIC_IP>:5173
+👉 http://13.234.217.242:5173
 
 ---
 
