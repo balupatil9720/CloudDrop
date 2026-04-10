@@ -226,7 +226,8 @@ terraform apply
 
 ### 🏠 Landing Page
 
-![Landing](./screenshots/landing.png)
+![Landing1](./screenshots/landing1.png)
+![Landing2](./screenshots/landing2.png)
 
 ### 🔐 Login
 
