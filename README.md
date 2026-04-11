@@ -112,87 +112,67 @@
 * Express.js
 * MongoDB (Mongoose)
 * Multer
+* JSON Web Tokens (JWT)
+* AWS SDK v3
 
 ### 🔹 Cloud
 
 * AWS S3 (Multipart Upload)
+* AWS EC2
+* AWS IAM
 
 ### 🔹 DevOps
 
 * Docker
 * Docker Compose
 * GitHub Actions (CI/CD)
-* AWS EC2
 
 ---
-
 ## 📁 Project Structure
 
-### Backend
+### Backend Structure
 backend/
 ├── config/
-│ ├── db.js
-│ ├── s3.js
+│ ├── db.js # MongoDB connection
+│ └── s3.js # AWS S3 configuration
 ├── controllers/
-│ ├── authController.js
-│ ├── fileController.js
+│ ├── authController.js # Authentication logic
+│ └── fileController.js # File operations
 ├── middlewares/
-│ ├── authMiddleware.js
-│ ├── multer.middleware.js
-│ ├── errorMiddleware.js
+│ ├── authMiddleware.js # JWT verification
+│ ├── multer.middleware.js # File upload handling
+│ └── errorMiddleware.js # Error handling
 ├── models/
-│ ├── User.js
-│ ├── File.js
+│ ├── User.js # User schema
+│ └── File.js # File schema
 ├── routes/
-│ ├── authRoutes.js
-│ ├── fileRoutes.js
+│ ├── authRoutes.js # Auth endpoints
+│ └── fileRoutes.js # File endpoints
 ├── utils/
-│ ├── asyncHandler.js
-│ ├── ApiError.js
-│ ├── ApiResponse.js
-│ ├── generateCode.js
-├── app.js
-├── server.js
+│ ├── asyncHandler.js # Async error wrapper
+│ ├── ApiError.js # Custom error class
+│ ├── ApiResponse.js # Standard response formatter
+│ └── generateCode.js # 6-digit code generator
+├── app.js # Express app setup
+└── server.js # Server entry point
 
+text
 
----
-
-### Frontend
-
-
+### Frontend Structure
 frontend/
 ├── src/
 │ ├── components/
-│ │ ├── Upload.jsx
-│ │ ├── FileList.jsx
-│ │ ├── Sidebar.jsx
+│ │ ├── Upload.jsx # File upload with chunk support
+│ │ ├── FileList.jsx # File management table
+│ │ └── Sidebar.jsx # User profile & navigation
 │ ├── pages/
-│ │ ├── Landing.jsx
-│ │ ├── Login.jsx
-│ │ ├── Signup.jsx
+│ │ ├── Landing.jsx # Homepage with guest/premium toggle
+│ │ ├── Login.jsx # User login
+│ │ └── Signup.jsx # User registration
 │ ├── utils/
-│ │ ├── api.js
-│ ├── App.jsx
-│ ├── main.jsx
-
-## ⚙️ Environment Variables
-
-### Backend (.env / .env.docker)
-
-
-PORT=5000
-MONGO_URI=your_mongodb_uri
-JWT_SECRET=your_secret
-
-AWS_REGION=ap-south-1
-S3_BUCKET_NAME=your_bucket_name
-
-AWS_ACCESS_KEY_ID=your_key
-AWS_SECRET_ACCESS_KEY=your_secret
-
-
----
-
+│ │ └── api.js # Axios configuration
+│ ├── App.jsx # Routing & layout
+│ └── main.jsx # Application entry
 ## 🚀 CI/CD Pipeline
 
 Triggered on push to `main`.
