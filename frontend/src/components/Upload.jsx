@@ -229,7 +229,7 @@ const Upload = ({ onUploadSuccess }) => {
                     />
                   </svg>
                   <div className="text-left flex-1">
-                    <p className="text-gray-900 font-medium text-sm truncate max-w-[200px]">
+                    <p className="text-gray-900 font-medium text-sm truncate max-w-200px">
                       {file.name}
                     </p>
                     <p className="text-xs text-gray-500">
@@ -262,7 +262,7 @@ const Upload = ({ onUploadSuccess }) => {
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300"
+                className="bg-linear-to-br from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -282,7 +282,7 @@ const Upload = ({ onUploadSuccess }) => {
             w-full mt-4 py-2.5 rounded-lg font-medium transition-all text-sm
             ${!file 
               ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-              : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-sm"
+              : "bg-linear-to-br from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-sm"
             }
           `}
         >

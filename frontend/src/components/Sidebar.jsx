@@ -22,7 +22,7 @@ const Sidebar = ({ onLogout }) => {
       {/* Header - Compact */}
       <div className="px-4 py-3 border-b border-gray-200">
         <div className="flex items-center space-x-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-7 h-7 bg-linear-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold text-sm">C</span>
           </div>
           <div>
@@ -36,7 +36,7 @@ const Sidebar = ({ onLogout }) => {
       <div className="px-4 py-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center text-lg font-semibold text-indigo-600">
+            <div className="w-12 h-12 bg-linear-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center text-lg font-semibold text-indigo-600">
               {profile?.name ? profile.name.charAt(0).toUpperCase() : "U"}
             </div>
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
