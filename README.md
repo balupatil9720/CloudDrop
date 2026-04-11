@@ -130,7 +130,9 @@
 ---
 ## 📁 Project Structure
 
-### Backend Structure
+### 🛠️ Backend Structure
+
+
 backend/
 ├── config/
 │ ├── db.js # MongoDB connection
@@ -140,7 +142,7 @@ backend/
 │ └── fileController.js # File operations
 ├── middlewares/
 │ ├── authMiddleware.js # JWT verification
-│ ├── multer.middleware.js # File upload handling
+│ ├── multer.middleware.js# File upload handling
 │ └── errorMiddleware.js # Error handling
 ├── models/
 │ ├── User.js # User schema
@@ -156,9 +158,12 @@ backend/
 ├── app.js # Express app setup
 └── server.js # Server entry point
 
-text
 
-### Frontend Structure
+---
+
+### 💻 Frontend Structure
+
+
 frontend/
 ├── src/
 │ ├── components/
@@ -173,6 +178,7 @@ frontend/
 │ │ └── api.js # Axios configuration
 │ ├── App.jsx # Routing & layout
 │ └── main.jsx # Application entry
+
 ## 🚀 CI/CD Pipeline
 
 Triggered on push to `main`.
@@ -198,9 +204,9 @@ Triggered on push to `main`.
 * S3 Bucket
 
 ### Commands
-terraform init
-terraform plan
-terraform apply
+- terraform init
+- terraform plan
+- terraform apply
 
 
 ---
@@ -267,13 +273,6 @@ terraform apply
 
 ---
 
-## 🔒 Security Improvements
-
-* Use IAM roles instead of access keys
-* Store secrets in environment variables
-* Avoid hardcoding credentials
-
----
 
 ## 🧠 Key Learnings
 
