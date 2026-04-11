@@ -190,26 +190,54 @@ Triggered on push to `main`.
 
 ## 📸 Screenshots
 
-### 🏠 Landing Page
-
-![Landing1](./screenshots/landing1.png)
-![Landing2](./screenshots/landing2.png)
-
 ### 🔐 Login
 
 ![Login](./screenshots/login.png)
 
-### 📊 Dashboard
-
-![Dashboard](./screenshots/dashboard.png)
-
-### ⬆️ Upload
-
-![Upload](./screenshots/upload.png)
-
 ### 📂 Signup
 
 ![Signup](./screenshots/signup.png)
+ ### 🏠 Landing Page
+
+## 📸 Screenshots
+
+### 🏠 Landing Page
+
+![Landing Hero](./screenshots/landing-hero.png)
+![Landing Features 1](./screenshots/landing-features1.png)
+![Landing Features 2](./screenshots/landing-features2.png)
+---
+
+### ⚡ Quick Access (Guest Mode)
+
+![Quick Access](./screenshots/quick-access.png)
+
+---
+
+### 🔐 Login Page
+
+![Login](./screenshots/login.png)
+
+---
+
+### 📂 Signup Page
+
+![Signup](./screenshots/signup.png)
+
+---
+
+### 📊 Dashboard
+
+![Dashboard Overview](./screenshots/dashboard-overview.png)
+![Dashboard Sidebar](./screenshots/dashboard-sidebar.png)
+![Dashboard Files](./screenshots/dashboard-files.png)
+
+---
+
+### ⬆️ Upload System
+ 
+![Upload Progress](./screenshots/upload-progress.png)
+![Upload Complete](./screenshots/upload-complete.png)
 
 ---
 
