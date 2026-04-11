@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import toast from "react-hot-toast";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -11,24 +12,65 @@ const Landing = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [activeTab, setActiveTab] = useState("guest");
+  const [isDownloadLoading, setIsDownloadLoading] = useState(false);
+
+  // Check if user is logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
 
   const handleFileDownload = async () => {
     if (!accessCode.trim()) {
-      alert("Please enter a valid access code");
+      toast.error("Please enter a valid access code");
+      return;
+    }
+
+    if (accessCode.length !== 6) {
+      toast.error("Access code must be exactly 6 characters");
       return;
     }
 
     try {
+      setIsDownloadLoading(true);
+      toast.loading("Verifying access code...", { id: "download" });
+      
       const response = await api.get(`/files/code/${accessCode}`);
+      
+      toast.success("File found! Starting download...", { id: "download" });
+      
+      // Open download URL in new tab
       window.open(response.data.data.url, "_blank");
+      
+      // Reset access code after successful download
+      setAccessCode("");
     } catch (error) {
-      alert(error.response?.data?.message || "Invalid or expired access code");
+      const errorMsg = error.response?.data?.message || "Invalid or expired access code";
+      toast.error(errorMsg, { id: "download" });
+      
+      // If file is expired, show additional info
+      if (errorMsg.includes("expired")) {
+        toast.error("This file has expired and is no longer available", { duration: 5000 });
+      }
+    } finally {
+      setIsDownloadLoading(false);
     }
   };
 
   const handleFileUpload = async () => {
     if (!selectedFile) {
-      alert("Please select a file to upload");
+      toast.error("Please select a file to upload");
+      return;
+    }
+
+    // Check file size based on user type
+    const maxSize = activeTab === "guest" ? 10 : 100;
+    const fileSizeMB = selectedFile.size / (1024 * 1024);
+    
+    if (fileSizeMB > maxSize) {
+      toast.error(`File size exceeds ${maxSize}MB limit for ${activeTab === "guest" ? "guest" : "premium"} users`);
       return;
     }
 
@@ -37,14 +79,19 @@ const Landing = () => {
 
     try {
       setIsLoading(true);
+      toast.loading("Uploading file...", { id: "upload" });
+      
       const response = await api.post("/files/upload", formData);
       const fileData = response.data.data;
 
       setGeneratedCode(fileData.code);
       setIsModalOpen(true);
       setSelectedFile(null);
+      
+      toast.success("File uploaded successfully!", { id: "upload" });
     } catch (error) {
-      alert(error.response?.data?.message || "File upload failed. Please try again.");
+      const errorMsg = error.response?.data?.message || "File upload failed. Please try again.";
+      toast.error(errorMsg, { id: "upload" });
     } finally {
       setIsLoading(false);
     }
@@ -52,6 +99,40 @@ const Landing = () => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedCode);
+    toast.success("Access code copied to clipboard!", {
+      icon: "📋",
+      duration: 2000
+    });
+  };
+
+  const handlePasteCode = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setAccessCode(text.toUpperCase().slice(0, 6));
+      toast.success("Code pasted successfully");
+    } catch (err) {
+      toast.error("Unable to paste. Please enter manually");
+    }
+  };
+
+  const handleFileInfoCheck = async () => {
+    if (!accessCode.trim()) {
+      toast.error("Please enter an access code");
+      return;
+    }
+
+    try {
+      toast.loading("Fetching file info...", { id: "info" });
+      const response = await api.get(`/files/info/${accessCode}`);
+      const info = response.data.data;
+      
+      toast.success(
+        `File: ${info.fileName} | Size: ${(info.size / (1024 * 1024)).toFixed(2)}MB`,
+        { id: "info", duration: 5000 }
+      );
+    } catch (error) {
+      toast.error(error.response?.data?.message || "File not found", { id: "info" });
+    }
   };
 
   return (
@@ -61,7 +142,7 @@ const Landing = () => {
       <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 lg:h-20">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate("/")}>
               <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-white font-bold text-lg">C</span>
               </div>
@@ -72,19 +153,29 @@ const Landing = () => {
             </div>
 
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigate("/login")}
-                className="px-5 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
-              >
-                Sign In
-              </button>
-
-              <button
-                onClick={() => navigate("/signup")}
-                className="px-6 py-2 text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm"
-              >
-                Get Started
-              </button>
+              {isLoggedIn ? (
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="px-6 py-2 text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm"
+                >
+                  Dashboard
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="px-5 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => navigate("/signup")}
+                    className="px-6 py-2 text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm"
+                  >
+                    Get Started
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -130,7 +221,7 @@ const Landing = () => {
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Premium Account
+              Registered User
             </button>
           </div>
         </div>
@@ -143,8 +234,12 @@ const Landing = () => {
         {activeTab === "guest" && (
           <div className="animate-fadeIn">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">Guest Access</h2>
-              <p className="text-gray-600">Quick file sharing without registration</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">Quick Access</h2>
+              <p className="text-gray-600">Fast file sharing without registration</p>
+              <div className="mt-2 inline-flex items-center gap-2 text-sm">
+                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">⬆️ Up to 10MB</span>
+                <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded">⏱️ 2 Days Expiry</span>
+              </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8 mb-12">
@@ -174,23 +269,41 @@ const Landing = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Access Code
                       </label>
-                      <input
-                        type="text"
-                        value={accessCode}
-                        onChange={(e) => setAccessCode(e.target.value.toUpperCase().slice(0, 6))}
-                        placeholder="••••••"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors font-mono text-center text-2xl tracking-widest"
-                        maxLength={6}
-                      />
-                      <p className="text-xs text-gray-400 mt-2">6-digit alphanumeric code</p>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={accessCode}
+                          onChange={(e) => setAccessCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                          placeholder="••••••"
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors font-mono text-center text-2xl tracking-widest"
+                          maxLength={6}
+                        />
+                        <button
+                          onClick={handlePasteCode}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+                        >
+                          📋 Paste
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">6-digit alphanumeric code (A-Z, 0-9)</p>
                     </div>
 
-                    <button
-                      onClick={handleFileDownload}
-                      className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium"
-                    >
-                      Download File
-                    </button>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleFileDownload}
+                        disabled={isDownloadLoading}
+                        className="flex-1 bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isDownloadLoading ? "Verifying..." : "Download File"}
+                      </button>
+                      <button
+                        onClick={handleFileInfoCheck}
+                        className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        title="Check file info"
+                      >
+                        ℹ️
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -218,12 +331,20 @@ const Landing = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select File
+                        Select File (Max 10MB)
                       </label>
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors cursor-pointer bg-gray-50">
                         <input
                           type="file"
-                          onChange={(e) => setSelectedFile(e.target.files[0])}
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file && file.size > 10 * 1024 * 1024) {
+                              toast.error("File size exceeds 10MB limit for guest users");
+                              e.target.value = "";
+                              return;
+                            }
+                            setSelectedFile(file);
+                          }}
                           className="hidden"
                           id="guest-file-upload"
                         />
@@ -232,11 +353,11 @@ const Landing = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                           </svg>
                           <p className="text-sm text-gray-600">
-                            {selectedFile ? selectedFile.name : "Click to browse"}
+                            {selectedFile ? selectedFile.name : "Click to browse or drag & drop"}
                           </p>
                           {selectedFile && (
                             <p className="text-xs text-gray-400 mt-2">
-                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB / 10 MB
                             </p>
                           )}
                         </label>
@@ -246,12 +367,28 @@ const Landing = () => {
                     <button
                       onClick={handleFileUpload}
                       disabled={isLoading}
-                      className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium disabled:opacity-50"
+                      className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isLoading ? "Processing..." : "Generate Access Code"}
+                      {isLoading ? "Uploading..." : "Generate Access Code"}
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* File Statistics Banner */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+                <div className="text-2xl font-bold text-indigo-600">10MB</div>
+                <div className="text-xs text-gray-500">Max File Size</div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+                <div className="text-2xl font-bold text-amber-600">2 Days</div>
+                <div className="text-xs text-gray-500">File Retention</div>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+                <div className="text-2xl font-bold text-green-600">Unlimited</div>
+                <div className="text-xs text-gray-500">Downloads</div>
               </div>
             </div>
 
@@ -266,7 +403,7 @@ const Landing = () => {
                     <h4 className="font-semibold text-gray-900">Upgrade for More Features</h4>
                   </div>
                   <p className="text-gray-600 text-sm">
-                    Create a free account to get 21-day file retention, personal dashboard, and file management capabilities.
+                    Create a free account to get 100MB uploads, 21-day file retention, personal dashboard, and advanced file management capabilities.
                   </p>
                 </div>
                 <button
@@ -284,66 +421,90 @@ const Landing = () => {
         {activeTab === "authenticated" && (
           <div className="animate-fadeIn">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">Premium Features</h2>
-              <p className="text-gray-600">Enhanced security and extended capabilities</p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">Member Features</h2>
+              <p className="text-gray-600">Enhanced capabilities for registered users</p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
+            <div className="grid md:grid-cols-2 gap-6 mb-12">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl">📊</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">File Analytics Dashboard</h4>
+                    <p className="text-sm text-gray-600">Track download counts, view file statistics, and monitor your storage usage in real-time</p>
+                  </div>
+                </div>
+              </div>
               
-              {/* Feature 1 */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center hover:shadow-xl transition-shadow">
-                <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-100">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl">⚡</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">100MB Upload Limit</h4>
+                    <p className="text-sm text-gray-600">Upload larger files with 10x more storage capacity than guest users</p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Extended Retention</h3>
-                <p className="text-2xl font-bold text-indigo-600 mb-2">21 Days</p>
-                <p className="text-sm text-gray-500">File availability period</p>
               </div>
 
-              {/* Feature 2 */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center hover:shadow-xl transition-shadow">
-                <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl">📋</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">Bulk File Management</h4>
+                    <p className="text-sm text-gray-600">View, organize, and manage all your uploaded files from a single dashboard</p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Personal Dashboard</h3>
-                <p className="text-sm text-gray-500 mt-2">Manage all your files in one place</p>
               </div>
 
-              {/* Feature 3 */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center hover:shadow-xl transition-shadow">
-                <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-6 border border-orange-100">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl">📈</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">Download Analytics</h4>
+                    <p className="text-sm text-gray-600">Track how many times each file has been downloaded</p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-2">Secure Authentication</h3>
-                <p className="text-sm text-gray-500 mt-2">JWT-based protected access</p>
               </div>
             </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => navigate("/login")}
-                className="px-8 py-3 bg-white border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
-              >
-                Sign In to Dashboard
-              </button>
-              <button
-                onClick={() => navigate("/signup")}
-                className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
-              >
-                Create Premium Account
-              </button>
+              {isLoggedIn ? (
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+                >
+                  Go to Dashboard →
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="px-8 py-3 bg-white border-2 border-indigo-600 text-indigo-600 rounded-lg font-semibold hover:bg-indigo-50 transition-colors"
+                  >
+                    Sign In to Dashboard
+                  </button>
+                  <button
+                    onClick={() => navigate("/signup")}
+                    className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
+                  >
+                    Create Free Account
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-500">
-                ✓ Track file downloads • ✓ Manage multiple files • ✓ Extended storage
+                ✓ Track file downloads • ✓ Manage multiple files • ✓ Extended 21-day storage • ✓ Advanced analytics
               </p>
             </div>
           </div>
@@ -408,7 +569,7 @@ const Landing = () => {
               {activeTab === "guest" && (
                 <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
                   <p className="text-xs text-indigo-700 text-center">
-                    💡 Create an account to extend file retention to 21 days
+                    💡 Create an account to extend file retention to 21 days and upload files up to 100MB
                   </p>
                 </div>
               )}

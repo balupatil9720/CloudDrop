@@ -204,25 +204,9 @@ const Signup = ({ setToken }) => {
                 <p className="text-xs text-gray-500 mt-1">Encryption</p>
               </div>
             </div>
-
-            {/* Help Text */}
-            <div className="text-center mt-6">
-              <p className="text-xs text-gray-400">
-                By signing up, you agree to our Terms of Service and Privacy Policy
-              </p>
-            </div>
           </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white/50">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
-          <p className="text-xs text-gray-400 text-center">
-            © 2024 CloudDrop. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };
