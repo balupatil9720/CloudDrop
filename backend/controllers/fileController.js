@@ -13,10 +13,23 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import s3 from "../config/s3.js";
 import { generateCode } from "../utils/generateCode.js";
 
-// ✅ Upload File (guest + user)
+// ✅ Upload File (guest + user with limits)
 const uploadFile = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, "File is required");
+  }
+
+  const MAX_GUEST_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_USER_SIZE = 100 * 1024 * 1024; // 100MB
+
+  const isGuest = !req.user;
+
+  if (isGuest && req.file.size > MAX_GUEST_SIZE) {
+    throw new ApiError(400, "Guest users can upload max 10MB");
+  }
+
+  if (!isGuest && req.file.size > MAX_USER_SIZE) {
+    throw new ApiError(400, "Users can upload max 100MB");
   }
 
   const fileContent = fs.readFileSync(req.file.path);
@@ -34,7 +47,7 @@ const uploadFile = asyncHandler(async (req, res) => {
 
   const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
-  // 🔑 Generate code
+  // 🔑 Generate unique code
   let code;
   let exists = true;
 
@@ -43,9 +56,6 @@ const uploadFile = asyncHandler(async (req, res) => {
     const existingFile = await File.findOne({ code });
     exists = !!existingFile;
   }
-
-  // 🔥 Guest vs User logic
-  const isGuest = !req.user;
 
   const expiryDays = isGuest ? 2 : 21;
 
@@ -61,33 +71,66 @@ const uploadFile = asyncHandler(async (req, res) => {
     isGuest,
     expiresAt,
     uploadedBy: req.user?._id || null,
+    status: "completed",
   });
 
   fs.unlinkSync(req.file.path);
 
   res.status(201).json(
-    new ApiResponse(
-      201,
-      newFile,
-      isGuest
-        ? "File uploaded (Guest - expires in 2 days)"
-        : "File uploaded (User - expires in 21 days)"
-    )
+    new ApiResponse(201, newFile, "File uploaded successfully")
   );
 });
 
-// ✅ Get user files
+// ✅ Get user files (with expiry countdown + sorting)
 const getFiles = asyncHandler(async (req, res) => {
   const files = await File.find({
     uploadedBy: req.user._id,
   }).sort({ createdAt: -1 });
 
+  const updatedFiles = files.map((file) => {
+    const timeLeft = file.expiresAt - new Date();
+
+    return {
+      ...file.toObject(),
+      expiresIn: Math.max(0, Math.floor(timeLeft / 1000)), // seconds
+    };
+  });
+
   res.status(200).json(
-    new ApiResponse(200, files, "Files fetched successfully")
+    new ApiResponse(200, updatedFiles, "Files fetched successfully")
   );
 });
 
-// 🔐 Download
+// 📊 Storage Usage
+const getStorageStats = asyncHandler(async (req, res) => {
+  const files = await File.find({ uploadedBy: req.user._id });
+
+  const totalUsed = files.reduce((acc, file) => acc + file.fileSize, 0);
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      totalUsed,
+      totalFiles: files.length,
+    })
+  );
+});
+
+// 📊 System Metrics
+const getSystemMetrics = asyncHandler(async (req, res) => {
+  const totalFiles = await File.countDocuments();
+  const totalUserFiles = await File.countDocuments({ isGuest: false });
+  const totalGuestFiles = await File.countDocuments({ isGuest: true });
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      totalFiles,
+      totalUserFiles,
+      totalGuestFiles,
+    })
+  );
+});
+
+// 🔐 Download (private)
 const getDownloadUrl = asyncHandler(async (req, res) => {
   const { fileId } = req.params;
 
@@ -95,7 +138,10 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
 
   if (!file) throw new ApiError(404, "File not found");
 
-  if (file.uploadedBy && file.uploadedBy.toString() !== req.user._id.toString()) {
+  if (
+    file.uploadedBy &&
+    file.uploadedBy.toString() !== req.user._id.toString()
+  ) {
     throw new ApiError(403, "Access denied");
   }
 
@@ -113,6 +159,10 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
   const signedUrl = await getSignedUrl(s3, command, {
     expiresIn: 60,
   });
+
+  file.downloadCount += 1;
+  file.lastDownloadedAt = new Date();
+  await file.save();
 
   res.status(200).json(
     new ApiResponse(200, { url: signedUrl }, "Download URL generated")
@@ -143,6 +193,7 @@ const getFileByCode = asyncHandler(async (req, res) => {
   });
 
   file.downloadCount += 1;
+  file.lastDownloadedAt = new Date();
   await file.save();
 
   res.status(200).json(
@@ -155,4 +206,11 @@ const getFileByCode = asyncHandler(async (req, res) => {
   );
 });
 
-export { uploadFile, getFiles, getDownloadUrl, getFileByCode };
+export {
+  uploadFile,
+  getFiles,
+  getDownloadUrl,
+  getFileByCode,
+  getStorageStats,
+  getSystemMetrics,
+};

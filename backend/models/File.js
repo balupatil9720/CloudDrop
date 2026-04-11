@@ -11,29 +11,25 @@ const fileSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-    filePath: {
-      type: String,
-    },
     fileUrl: {
       type: String,
       required: true,
     },
-
     fileKey: {
-      type: String, // 🔥 ADD THIS (VERY IMPORTANT)
+      type: String,
+      required: true,
     },
-
     code: {
       type: String,
       required: true,
       unique: true,
     },
-    expiryDate: {
-      type: Date,
-    },
     downloadCount: {
       type: Number,
       default: 0,
+    },
+    lastDownloadedAt: {
+      type: Date,
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -46,6 +42,11 @@ const fileSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       required: true,
+    },
+    status: {
+      type: String,
+      enum: ["uploading", "completed"],
+      default: "completed",
     },
   },
   {

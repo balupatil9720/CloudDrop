@@ -7,13 +7,14 @@ import {
 } from "react-router-dom";
 import { useState } from "react";
 
+import { Toaster } from "react-hot-toast"; // 🔥 ADD THIS
+
 import Upload from "./components/Upload";
 import FileList from "./components/FileList";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Landing from "./pages/Landing";
-
 
 // 🔐 Dashboard (ONLY FOR LOGGED-IN USERS)
 const Dashboard = ({ refreshKey, refresh, setToken }) => {
@@ -70,12 +71,37 @@ function App() {
 
   return (
     <BrowserRouter>
+
+      {/* 🔥 GLOBAL TOASTER (VERY IMPORTANT) */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            fontSize: "14px",
+            borderRadius: "8px",
+            padding: "10px 14px",
+          },
+          success: {
+            style: {
+              background: "#ecfdf5",
+              color: "#065f46",
+            },
+          },
+          error: {
+            style: {
+              background: "#fef2f2",
+              color: "#7f1d1d",
+            },
+          },
+        }}
+      />
+
       <Routes>
 
-        {/* 🌐 LANDING (Guest + Entry Point) */}
+        {/* 🌐 LANDING */}
         <Route path="/" element={<Landing />} />
 
-        {/* 🔐 DASHBOARD (Protected) */}
+        {/* 🔐 DASHBOARD */}
         <Route
           path="/dashboard"
           element={
@@ -115,7 +141,7 @@ function App() {
           }
         />
 
-        {/* ❌ FALLBACK ROUTE */}
+        {/* ❌ FALLBACK */}
         <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>
