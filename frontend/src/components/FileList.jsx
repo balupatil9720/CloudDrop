@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../utils/api";
+import toast from "react-hot-toast";
 
 const FileList = () => {
   const [files, setFiles] = useState([]);
@@ -13,6 +14,7 @@ const FileList = () => {
       setFiles(response.data.data);
     } catch (error) {
       console.error("Failed to fetch files:", error);
+      toast.error("Failed to load files");
     }
   };
 
@@ -20,64 +22,92 @@ const FileList = () => {
     try {
       const res = await api.get("/files/storage");
       setStorage(res.data.data);
-    } catch (err) {
+    } catch {
       console.log("Storage fetch failed");
     }
   };
 
-  const formatTime = (seconds) => {
-    if (!seconds || seconds <= 0) return "Expired";
-
-    const d = Math.floor(seconds / (3600 * 24));
-    const h = Math.floor((seconds % (3600 * 24)) / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-
-    return `${d}d ${h}h ${m}m`;
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
+  // ✅ FIXED DOWNLOAD HANDLER
   const handleFileDownload = async (id) => {
     try {
       const response = await api.get(`/files/download/${id}`);
+
       window.open(response.data.data.url, "_blank");
-      fetchFiles(); // refresh download count
+
+      // 🔥 Wait then refresh (important)
+      setTimeout(() => {
+        fetchFiles();
+      }, 1000);
+
     } catch (error) {
-      alert(error.response?.data?.message || "Download failed.");
+      toast.error(error.response?.data?.message || "Download failed");
     }
   };
 
   const handleCodeDownload = async () => {
     if (!accessCode.trim()) {
-      alert("Please enter an access code");
+      toast.error("Enter access code");
       return;
     }
 
     try {
       setIsLoading(true);
-      const response = await api.get(`/files/code/${accessCode}`);
+
+      const response = await api.get(`/files/code/${accessCode.trim()}`);
+
       window.open(response.data.data.url, "_blank");
+
+      toast.success("File retrieved");
       setAccessCode("");
+
     } catch (error) {
-      alert(error.response?.data?.message || "Invalid or expired access code");
+      toast.error(
+        error.response?.data?.message || "Invalid or expired code"
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  const copyToClipboard = (code) => {
-    navigator.clipboard.writeText(code);
+  const copyToClipboard = async (code) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success("Code copied");
+    } catch {
+      toast.error("Copy failed");
+    }
   };
 
   useEffect(() => {
     fetchFiles();
     fetchStorage();
+
+    // 🔥 AUTO REFRESH ON TAB FOCUS (VERY IMPORTANT)
+    const handleFocus = () => {
+      fetchFiles();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   return (
     <div className="space-y-8">
 
-      {/* 🔥 STORAGE CARD */}
+      {/* STORAGE */}
       {storage && (
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-5">
+        <div className="bg-white rounded-xl shadow border p-5">
           <h3 className="text-sm text-gray-500">Storage Usage</h3>
           <p className="text-xl font-semibold text-indigo-600">
             {(storage.totalUsed / (1024 * 1024)).toFixed(2)} MB
@@ -88,83 +118,115 @@ const FileList = () => {
         </div>
       )}
 
-      {/* Access Code Section */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg overflow-hidden">
-        <div className="px-6 py-5">
-          <h3 className="text-white font-semibold mb-3">Quick Access</h3>
+      {/* ACCESS CODE */}
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-5">
+        <h3 className="text-white font-semibold mb-3">Quick Access</h3>
 
-          <div className="flex gap-3">
-            <input
-              type="text"
-              placeholder="Enter 6-digit access code"
-              value={accessCode}
-              onChange={(e) =>
-                setAccessCode(e.target.value.toUpperCase().slice(0, 6))
-              }
-              className="flex-1 px-4 py-2 rounded-lg text-gray-900 outline-none font-mono text-center"
-              maxLength={6}
-            />
-            <button
-              onClick={handleCodeDownload}
-              disabled={isLoading}
-              className="bg-white text-indigo-600 px-4 py-2 rounded-lg"
-            >
-              {isLoading ? "Loading..." : "Retrieve"}
-            </button>
-          </div>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Enter 6-digit code"
+            value={accessCode}
+            onChange={(e) =>
+              setAccessCode(e.target.value.trim().toUpperCase())
+            }
+            className="flex-1 px-4 py-2 rounded-lg text-gray-900 text-center"
+          />
+
+          <button
+            onClick={handleCodeDownload}
+            className="bg-white text-indigo-600 px-4 py-2 rounded-lg"
+          >
+            {isLoading ? "Loading..." : "Retrieve"}
+          </button>
         </div>
       </div>
 
-      {/* File List */}
-      <div className="grid md:grid-cols-2 gap-5">
-        {files.map((file) => {
-          const isExpired = new Date() > new Date(file.expiresAt);
-          const fileSizeMB = (file.fileSize / (1024 * 1024)).toFixed(2);
+      {/* TABLE */}
+      <div className="bg-white rounded-xl shadow overflow-hidden">
 
-          return (
-            <div key={file._id} className="bg-white rounded-xl shadow p-5">
+        <table className="w-full text-sm">
+          <thead className="bg-indigo-600 text-white">
+            <tr>
+              <th className="px-4 py-3">Sr</th>
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Type</th>
+              <th className="px-4 py-3">Size</th>
+              <th className="px-4 py-3">Uploaded</th>
+              <th className="px-4 py-3">Expiry</th>
+              <th className="px-4 py-3">Downloads</th>
+              <th className="px-4 py-3">Code</th>
+              <th className="px-4 py-3">Action</th>
+            </tr>
+          </thead>
 
-              <h3 className="font-semibold text-gray-900">
-                {file.fileName}
-              </h3>
+          <tbody>
+            {files.map((file, index) => {
+              const isExpired = new Date() > new Date(file.expiresAt);
 
-              <p className="text-xs text-gray-500">{fileSizeMB} MB</p>
+              return (
+                <tr key={file._id} className="border-b hover:bg-gray-50">
 
-              {/* 🔥 NEW FEATURES */}
-              <p className="text-xs text-gray-600 mt-1">
-                ⏳ {formatTime(file.expiresIn)}
-              </p>
+                  <td className="px-4 py-3">{index + 1}</td>
 
-              <p className="text-xs text-gray-600">
-                📥 {file.downloadCount} downloads
-              </p>
+                  <td className="px-4 py-3 font-medium text-indigo-600">
+                    {file.fileName}
+                  </td>
 
-              <div className="flex items-center justify-between mt-2">
-                <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                  {file.code}
-                </code>
-                <button
-                  onClick={() => copyToClipboard(file.code)}
-                  className="text-indigo-600 text-xs"
-                >
-                  Copy
-                </button>
-              </div>
+                  <td className="px-4 py-3">
+                    {file.fileName.split(".").pop()}
+                  </td>
 
-              <button
-                disabled={isExpired}
-                onClick={() => handleFileDownload(file._id)}
-                className={`mt-3 w-full py-2 rounded-lg ${
-                  isExpired
-                    ? "bg-gray-100 text-gray-400"
-                    : "bg-indigo-600 text-white"
-                }`}
-              >
-                {isExpired ? "Expired" : "Download"}
-              </button>
-            </div>
-          );
-        })}
+                  <td className="px-4 py-3">
+                    {(file.fileSize / (1024 * 1024)).toFixed(2)} MB
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {formatDate(file.createdAt)}
+                  </td>
+
+                  <td className={`px-4 py-3 ${
+                    isExpired ? "text-red-500" : "text-green-600"
+                  }`}>
+                    {formatDate(file.expiresAt)}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {file.downloadCount}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono">{file.code}</span>
+                      <button
+                        onClick={() => copyToClipboard(file.code)}
+                        className="text-indigo-600 text-xs"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <button
+                      disabled={isExpired}
+                      onClick={() => handleFileDownload(file._id)}
+                      className={`px-3 py-1 rounded ${
+                        isExpired
+                          ? "bg-gray-200 text-gray-400"
+                          : "bg-indigo-600 text-white hover:bg-indigo-700"
+                      }`}
+                    >
+                      {isExpired ? "Expired" : "Download"}
+                    </button>
+                  </td>
+
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
       </div>
     </div>
   );

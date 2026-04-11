@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import toast from "react-hot-toast";
 
 const Login = ({ setToken }) => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -13,7 +14,7 @@ const Login = ({ setToken }) => {
 
   const handleLogin = async () => {
     if (!form.email.trim() || !form.password.trim()) {
-      alert("Please enter both email and password");
+      toast.error("Please enter both email and password");
       return;
     }
 
@@ -26,9 +27,13 @@ const Login = ({ setToken }) => {
       localStorage.setItem("token", token);
       setToken(token);
 
-      navigate("/dashboard");
+      toast.success("Login successful! Redirecting to dashboard...");
+      
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed. Please check your credentials.");
+      toast.error(err.response?.data?.message || "Login failed. Please check your credentials.");
     } finally {
       setIsLoading(false);
     }

@@ -79,13 +79,13 @@ function App() {
 
       {/* 🔥 GLOBAL TOASTER */}
       <Toaster
-        position="top-right"
+        position="top-center"
         toastOptions={{
           duration: 3000,
           style: {
             fontSize: "14px",
             borderRadius: "10px",
-            padding: "12px 16px",
+            padding: "11px 20px",
           },
           success: {
             style: {

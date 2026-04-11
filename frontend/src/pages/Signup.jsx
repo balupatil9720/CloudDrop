@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import toast from "react-hot-toast";
 
 const Signup = ({ setToken }) => {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -13,22 +14,22 @@ const Signup = ({ setToken }) => {
 
   const handleSignup = async () => {
     if (!form.name.trim()) {
-      alert("Please enter your full name");
+      toast.error("Please enter your full name");
       return;
     }
     
     if (!form.email.trim()) {
-      alert("Please enter your email address");
+      toast.error("Please enter your email address");
       return;
     }
     
     if (!form.password.trim()) {
-      alert("Please enter a password");
+      toast.error("Please enter a password");
       return;
     }
 
     if (form.password.length < 6) {
-      alert("Password must be at least 6 characters long");
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
@@ -41,9 +42,13 @@ const Signup = ({ setToken }) => {
       localStorage.setItem("token", token);
       setToken(token);
 
-      navigate("/dashboard");
+      toast.success("Account created successfully! Redirecting to dashboard...");
+      
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1500);
     } catch (err) {
-      alert(err.response?.data?.message || "Registration failed. Please try again.");
+      toast.error(err.response?.data?.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
