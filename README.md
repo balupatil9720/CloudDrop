@@ -127,57 +127,6 @@
 * Docker Compose
 * GitHub Actions (CI/CD)
 
----
-## 📁 Project Structure
-
-### 🛠️ Backend Structure
-
-
-backend/
-├── config/
-│ ├── db.js # MongoDB connection
-│ └── s3.js # AWS S3 configuration
-├── controllers/
-│ ├── authController.js # Authentication logic
-│ └── fileController.js # File operations
-├── middlewares/
-│ ├── authMiddleware.js # JWT verification
-│ ├── multer.middleware.js# File upload handling
-│ └── errorMiddleware.js # Error handling
-├── models/
-│ ├── User.js # User schema
-│ └── File.js # File schema
-├── routes/
-│ ├── authRoutes.js # Auth endpoints
-│ └── fileRoutes.js # File endpoints
-├── utils/
-│ ├── asyncHandler.js # Async error wrapper
-│ ├── ApiError.js # Custom error class
-│ ├── ApiResponse.js # Standard response formatter
-│ └── generateCode.js # 6-digit code generator
-├── app.js # Express app setup
-└── server.js # Server entry point
-
-
----
-
-### 💻 Frontend Structure
-
-
-frontend/
-├── src/
-│ ├── components/
-│ │ ├── Upload.jsx # File upload with chunk support
-│ │ ├── FileList.jsx # File management table
-│ │ └── Sidebar.jsx # User profile & navigation
-│ ├── pages/
-│ │ ├── Landing.jsx # Homepage with guest/premium toggle
-│ │ ├── Login.jsx # User login
-│ │ └── Signup.jsx # User registration
-│ ├── utils/
-│ │ └── api.js # Axios configuration
-│ ├── App.jsx # Routing & layout
-│ └── main.jsx # Application entry
 
 ## 🚀 CI/CD Pipeline
 
