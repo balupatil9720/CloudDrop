@@ -7,16 +7,17 @@ import {
 } from "react-router-dom";
 import { useState } from "react";
 
-import { Toaster } from "react-hot-toast"; // 🔥 ADD THIS
+import { Toaster } from "react-hot-toast";
 
 import Upload from "./components/Upload";
 import FileList from "./components/FileList";
+import Sidebar from "./components/Sidebar";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Landing from "./pages/Landing";
 
-// 🔐 Dashboard (ONLY FOR LOGGED-IN USERS)
+// 🔐 Dashboard
 const Dashboard = ({ refreshKey, refresh, setToken }) => {
   const navigate = useNavigate();
 
@@ -27,33 +28,39 @@ const Dashboard = ({ refreshKey, refresh, setToken }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-3xl bg-white shadow-xl rounded-2xl p-6 space-y-6">
+    <div className="min-h-screen flex bg-gray-100">
+
+      {/* 🔵 SIDEBAR (Fixed) */}
+      <div className="w-64 h-screen sticky top-0">
+        <Sidebar onLogout={handleLogout} />
+      </div>
+
+      {/* 🔷 MAIN CONTENT */}
+      <div className="flex-1 p-6 overflow-y-auto">
 
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-blue-600">
+        <div className="mb-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">
             ☁️ CloudDrop Dashboard
           </h1>
-
-          <button
-            onClick={handleLogout}
-            className="text-sm bg-red-500 text-white px-4 py-1 rounded-lg hover:bg-red-600"
-          >
-            Logout
-          </button>
         </div>
 
-        {/* 🔵 USER INFO */}
-        <div className="bg-blue-50 text-blue-700 text-sm px-4 py-2 rounded-lg">
+        {/* INFO CARD */}
+        <div className="bg-blue-50 text-blue-700 text-sm px-4 py-3 rounded-lg mb-6">
           🔵 Logged in user → Files expire in <b>21 days</b>
         </div>
 
-        {/* Upload */}
-        <Upload onUploadSuccess={refresh} />
+        {/* CONTENT STACK */}
+        <div className="space-y-6">
 
-        {/* Files */}
-        <FileList key={refreshKey} />
+          {/* Upload */}
+          <Upload onUploadSuccess={refresh} />
+
+          {/* Files */}
+          <FileList key={refreshKey} />
+
+        </div>
+
       </div>
     </div>
   );
@@ -61,8 +68,6 @@ const Dashboard = ({ refreshKey, refresh, setToken }) => {
 
 function App() {
   const [refreshKey, setRefreshKey] = useState(0);
-
-  // 🔥 Reactive token state
   const [token, setToken] = useState(localStorage.getItem("token"));
 
   const refresh = () => {
@@ -72,14 +77,15 @@ function App() {
   return (
     <BrowserRouter>
 
-      {/* 🔥 GLOBAL TOASTER (VERY IMPORTANT) */}
+      {/* 🔥 GLOBAL TOASTER */}
       <Toaster
         position="top-right"
         toastOptions={{
+          duration: 3000,
           style: {
             fontSize: "14px",
-            borderRadius: "8px",
-            padding: "10px 14px",
+            borderRadius: "10px",
+            padding: "12px 16px",
           },
           success: {
             style: {
