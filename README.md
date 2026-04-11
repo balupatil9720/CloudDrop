@@ -190,17 +190,6 @@ Triggered on push to `main`.
 
 ## 📸 Screenshots
 
-### 🔐 Login
-
-![Login](./screenshots/login.png)
-
-### 📂 Signup
-
-![Signup](./screenshots/signup.png)
- ### 🏠 Landing Page
-
-## 📸 Screenshots
-
 ### 🏠 Landing Page
 
 ![Landing Hero](./screenshots/landing-hero.png)
@@ -211,18 +200,6 @@ Triggered on push to `main`.
 ### ⚡ Quick Access (Guest Mode)
 
 ![Quick Access](./screenshots/quick-access.png)
-
----
-
-### 🔐 Login Page
-
-![Login](./screenshots/login.png)
-
----
-
-### 📂 Signup Page
-
-![Signup](./screenshots/signup.png)
 
 ---
 
@@ -238,6 +215,16 @@ Triggered on push to `main`.
  
 ![Upload Progress](./screenshots/upload-progress.png)
 ![Upload Complete](./screenshots/upload-complete.png)
+
+---
+
+### 🔐 Login
+
+![Login](./screenshots/login.png)
+
+### 📂 Signup
+
+![Signup](./screenshots/signup.png)
 
 ---
 
