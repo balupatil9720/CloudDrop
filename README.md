@@ -25,6 +25,7 @@
   * Upload files without login
   * Get 6-digit unique access code
   * File expiry: 2 days
+  * Max file size: **10MB**
 
 * **Authenticated Users**
 
@@ -32,6 +33,7 @@
   * Upload & manage files
   * File expiry: 21 days
   * Dashboard access
+  * Max file size: **100MB**
 
 ---
 
@@ -41,6 +43,33 @@
 * Store files in AWS S3
 * Generate pre-signed download URLs
 * Access via unique 6-digit code
+* Track **download count per file**
+* Show **file type, size, upload date, expiry date**
+
+---
+
+### ⚡ Advanced Upload System
+
+* Chunked file upload (S3 multipart upload)
+* Resumable uploads (continue from last chunk)
+* Upload progress bar (real-time)
+* Automatic switch:
+  * Small files → normal upload
+  * Large files → chunked upload
+
+---
+
+### 📊 Dashboard & Analytics
+
+* File list with structured table UI
+* Upload date & expiry date display
+* File status (Active / Expired)
+* Download count tracking
+* User profile sidebar:
+  * Total files uploaded
+  * Total storage used
+  * Total downloads
+  * Active vs expired files
 
 ---
 
@@ -48,6 +77,11 @@
 
 * JWT-based authentication
 * Protected routes
+* Industry-level validation:
+  * Email format validation
+  * Strong password rules
+  * Name validation
+* Backend file size validation (secure)
 * Expiry-based file lifecycle
 * Cron job for auto-deletion of expired files (MongoDB + S3)
 
@@ -70,6 +104,7 @@
 * React.js
 * Axios
 * Tailwind CSS
+* React Hot Toast
 
 ### 🔹 Backend
 
@@ -80,7 +115,7 @@
 
 ### 🔹 Cloud
 
-* AWS S3
+* AWS S3 (Multipart Upload)
 
 ### 🔹 DevOps
 
@@ -94,61 +129,57 @@
 ## 📁 Project Structure
 
 ### Backend
-
-```
 backend/
 ├── config/
-│   ├── db.js
-│   ├── s3.js
+│ ├── db.js
+│ ├── s3.js
 ├── controllers/
-│   ├── authController.js
-│   ├── fileController.js
+│ ├── authController.js
+│ ├── fileController.js
 ├── middlewares/
-│   ├── authMiddleware.js
-│   ├── multer.middleware.js
-│   ├── errorMiddleware.js
+│ ├── authMiddleware.js
+│ ├── multer.middleware.js
+│ ├── errorMiddleware.js
 ├── models/
-│   ├── User.js
-│   ├── File.js
+│ ├── User.js
+│ ├── File.js
 ├── routes/
-│   ├── authRoutes.js
-│   ├── fileRoutes.js
+│ ├── authRoutes.js
+│ ├── fileRoutes.js
 ├── utils/
-│   ├── asyncHandler.js
-│   ├── ApiError.js
-│   ├── ApiResponse.js
-│   ├── generateCode.js
+│ ├── asyncHandler.js
+│ ├── ApiError.js
+│ ├── ApiResponse.js
+│ ├── generateCode.js
 ├── app.js
 ├── server.js
-```
+
 
 ---
 
 ### Frontend
 
-```
+
 frontend/
 ├── src/
-│   ├── components/
-│   │   ├── Upload.jsx
-│   │   ├── FileList.jsx
-│   ├── pages/
-│   │   ├── Landing.jsx
-│   │   ├── Login.jsx
-│   │   ├── Signup.jsx
-│   ├── utils/
-│   │   ├── api.js
-│   ├── App.jsx
-│   ├── main.jsx
-```
-
----
+│ ├── components/
+│ │ ├── Upload.jsx
+│ │ ├── FileList.jsx
+│ │ ├── Sidebar.jsx
+│ ├── pages/
+│ │ ├── Landing.jsx
+│ │ ├── Login.jsx
+│ │ ├── Signup.jsx
+│ ├── utils/
+│ │ ├── api.js
+│ ├── App.jsx
+│ ├── main.jsx
 
 ## ⚙️ Environment Variables
 
 ### Backend (.env / .env.docker)
 
-```
+
 PORT=5000
 MONGO_URI=your_mongodb_uri
 JWT_SECRET=your_secret
@@ -158,7 +189,7 @@ S3_BUCKET_NAME=your_bucket_name
 
 AWS_ACCESS_KEY_ID=your_key
 AWS_SECRET_ACCESS_KEY=your_secret
-```
+
 
 ---
 
@@ -187,23 +218,23 @@ Triggered on push to `main`.
 * S3 Bucket
 
 ### Commands
-
-```
 terraform init
 terraform plan
 terraform apply
-```
+
 
 ---
 
 ## 🔄 System Flow
 
-1. User uploads file
-2. Backend stores metadata in MongoDB
-3. File uploaded to S3
-4. Unique 6-digit code generated
-5. File accessed using code
-6. Cron job deletes expired files
+1. User uploads file (normal or chunked)
+2. Backend validates file & user
+3. File uploaded to S3 (simple or multipart)
+4. Metadata stored in MongoDB
+5. Unique 6-digit code generated
+6. File accessed via code or dashboard
+7. Download count tracked
+8. Cron job deletes expired files
 
 ---
 
@@ -215,7 +246,7 @@ terraform apply
 | AWS S3 Integration   | ✅      |
 | Auth + Code + Expiry | ✅      |
 | Cron Job             | ✅      |
-| Advanced Upload      | ❌      |
+| Advanced Upload      | ✅      |
 | Docker               | ✅      |
 | CI/CD                | ✅      |
 | Terraform            | ❌      |
@@ -249,9 +280,6 @@ terraform apply
 
 ## 🔥 Future Enhancements
 
-* Chunked uploads
-* Resumable uploads
-* Upload progress bar
 * Nginx reverse proxy
 * HTTPS (SSL)
 * Custom domain
@@ -270,17 +298,14 @@ terraform apply
 ## 🧠 Key Learnings
 
 * MERN stack development
-* AWS S3 integration
+* AWS S3 multipart upload
+* Resumable file uploads
 * Authentication systems
 * CI/CD pipelines
 * Docker containerization
-* Terraform (IaC)
 
 ---
 
 ## 👨‍💻 Author
 
 **Balu Patil**
-
----
-
