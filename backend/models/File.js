@@ -9,7 +9,7 @@ const fileSchema = new mongoose.Schema(
     },
     fileSize: {
       type: Number,
-      required: true,
+      default: 0,
     },
     fileUrl: {
       type: String,
@@ -47,6 +47,11 @@ const fileSchema = new mongoose.Schema(
       type: String,
       enum: ["uploading", "completed"],
       default: "completed",
+    },
+
+    // 🔥 NEW → for resumable uploads
+    uploadId: {
+      type: String,
     },
   },
   {

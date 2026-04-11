@@ -2,33 +2,114 @@ import { useState } from "react";
 import api from "../utils/api";
 import toast from "react-hot-toast";
 
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+
 const Upload = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
+  // ================= NORMAL UPLOAD =================
+  const normalUpload = async () => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await api.post("/files/upload", formData);
+    return res.data.data;
+  };
+
+  // ================= CHUNKED UPLOAD =================
+  const chunkUpload = async () => {
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+    let saved = JSON.parse(localStorage.getItem("upload-progress"));
+
+    let uploadId, key, uploadedParts = [];
+
+    if (saved && saved.fileName === file.name) {
+      uploadId = saved.uploadId;
+      key = saved.key;
+      uploadedParts = saved.parts;
+    } else {
+      const startRes = await api.post("/files/start-upload", {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      });
+
+      uploadId = startRes.data.uploadId;
+      key = startRes.data.key;
+    }
+
+    const parts = [...uploadedParts];
+
+    for (let i = parts.length; i < totalChunks; i++) {
+      const chunk = file.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+
+      const formData = new FormData();
+      formData.append("file", chunk);
+      formData.append("uploadId", uploadId);
+      formData.append("key", key);
+      formData.append("partNumber", i + 1);
+
+      const res = await api.post("/files/upload-chunk", formData);
+
+      parts.push({
+        ETag: res.data.ETag,
+        PartNumber: i + 1,
+      });
+
+      // 🔥 Save progress for resume
+      localStorage.setItem(
+        "upload-progress",
+        JSON.stringify({
+          fileName: file.name,
+          uploadId,
+          key,
+          parts,
+        })
+      );
+
+      // 🔥 Progress
+      setProgress(Math.round(((i + 1) / totalChunks) * 100));
+    }
+
+    const completeRes = await api.post("/files/complete-upload", {
+      uploadId,
+      key,
+      parts,
+      fileSize: file.size,
+    });
+
+    localStorage.removeItem("upload-progress");
+
+    return completeRes.data.data;
+  };
+
+  // ================= MAIN =================
   const handleFileUpload = async () => {
     if (!file) {
       toast.error("Please select a file");
       return;
     }
 
-    // 🔥 VALIDATION
-    if (file.size > 100 * 1024 * 1024) {
-      toast.error("Max file size is 100MB");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
       setIsLoading(true);
-      const response = await api.post("/files/upload", formData);
+      setProgress(0);
 
-      setGeneratedCode(response.data.data.code);
+      let data;
+
+      // 🔥 AUTO SWITCH
+      if (file.size < 10 * 1024 * 1024) {
+        data = await normalUpload();
+      } else {
+        data = await chunkUpload();
+      }
+
+      setGeneratedCode(data.code);
       setIsModalOpen(true);
       setFile(null);
 
@@ -42,15 +123,11 @@ const Upload = ({ onUploadSuccess }) => {
     }
   };
 
-  // 🔥 COPY + CLOSE MODAL
+  // ================= COPY =================
   const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedCode);
-      toast.success("Code copied!");
-      setIsModalOpen(false); // close modal
-    } catch (err) {
-      toast.error("Failed to copy");
-    }
+    await navigator.clipboard.writeText(generatedCode);
+    toast.success("Code copied!");
+    setIsModalOpen(false);
   };
 
   const handleDragOver = (e) => {
@@ -78,6 +155,7 @@ const Upload = ({ onUploadSuccess }) => {
 
   const removeFile = () => {
     setFile(null);
+    setProgress(0);
     const fileInput = document.getElementById("file-input");
     if (fileInput) fileInput.value = "";
   };
@@ -87,7 +165,7 @@ const Upload = ({ onUploadSuccess }) => {
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-5">
         <h3 className="text-md font-semibold text-gray-900 mb-3">Upload File</h3>
         
-        {/* File Selection Area - Compact */}
+        {/* File Selection Area - Compact & Visible */}
         <div
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -130,7 +208,7 @@ const Upload = ({ onUploadSuccess }) => {
                     Click to browse or drag & drop
                   </p>
                   <p className="text-xs text-gray-400">
-                    Max 100MB
+                    Max 100MB | Resumable uploads
                   </p>
                 </div>
               </div>
@@ -156,6 +234,9 @@ const Upload = ({ onUploadSuccess }) => {
                     </p>
                     <p className="text-xs text-gray-500">
                       {(file.size / (1024 * 1024)).toFixed(2)} MB
+                      {file.size >= 10 * 1024 * 1024 && (
+                        <span className="ml-1 text-indigo-600">(Chunked upload)</span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -169,6 +250,29 @@ const Upload = ({ onUploadSuccess }) => {
             )}
           </label>
         </div>
+
+        {/* Progress Bar */}
+        {isLoading && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-gray-600">
+                {file && file.size >= 10 * 1024 * 1024 ? "Chunked upload" : "Uploading"}
+              </span>
+              <span className="text-xs font-medium text-indigo-600">{progress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+            {progress > 0 && progress < 100 && (
+              <p className="text-xs text-gray-400 mt-1 text-center">
+                {file && file.size >= 10 * 1024 * 1024 && "Upload can be resumed if interrupted"}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Upload Button */}
         <button
@@ -188,15 +292,22 @@ const Upload = ({ onUploadSuccess }) => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Uploading...
+              {progress}% Uploading...
             </span>
           ) : (
             "Upload File"
           )}
         </button>
+
+        {/* Info Note */}
+        <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-100">
+          <p className="text-xs text-blue-700 text-center">
+            💡 Files larger than 10MB use chunked upload with resume support
+          </p>
+        </div>
       </div>
 
-      {/* SUCCESS MODAL */}
+      {/* SUCCESS MODAL - Professional */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full shadow-2xl animate-scaleIn">
@@ -226,7 +337,7 @@ const Upload = ({ onUploadSuccess }) => {
                 
                 <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4 text-center">
                   <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Access Code</p>
-                  <p className="font-mono text-3xl font-bold text-gray-900 tracking-wider">
+                  <p className="font-mono text-3xl font-bold text-indigo-600 tracking-wider">
                     {generatedCode}
                   </p>
                 </div>

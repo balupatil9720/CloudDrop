@@ -7,43 +7,49 @@ import fs from "fs";
 import {
   PutObjectCommand,
   GetObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
 
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import s3 from "../config/s3.js";
 import { generateCode } from "../utils/generateCode.js";
 
-// ✅ Upload File (guest + user with limits)
+
+// ================= NORMAL UPLOAD =================
 const uploadFile = asyncHandler(async (req, res) => {
   if (!req.file) {
     throw new ApiError(400, "File is required");
   }
 
-  const MAX_GUEST_SIZE = 10 * 1024 * 1024; // 10MB
-  const MAX_USER_SIZE = 100 * 1024 * 1024; // 100MB
-
+  // 🔥 FILE SIZE VALIDATION
   const isGuest = !req.user;
+  const maxSize = isGuest
+    ? 10 * 1024 * 1024
+    : 100 * 1024 * 1024;
 
-  if (isGuest && req.file.size > MAX_GUEST_SIZE) {
-    throw new ApiError(400, "Guest users can upload max 10MB");
-  }
-
-  if (!isGuest && req.file.size > MAX_USER_SIZE) {
-    throw new ApiError(400, "Users can upload max 100MB");
+  if (req.file.size > maxSize) {
+    throw new ApiError(
+      400,
+      isGuest
+        ? "Guest upload limit is 10MB"
+        : "User upload limit is 100MB"
+    );
   }
 
   const fileContent = fs.readFileSync(req.file.path);
 
   const fileKey = `uploads/${Date.now()}-${req.file.originalname}`;
 
-  const command = new PutObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: fileKey,
-    Body: fileContent,
-    ContentType: req.file.mimetype,
-  });
-
-  await s3.send(command);
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: fileKey,
+      Body: fileContent,
+      ContentType: req.file.mimetype,
+    })
+  );
 
   const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileKey}`;
 
@@ -53,14 +59,11 @@ const uploadFile = asyncHandler(async (req, res) => {
 
   while (exists) {
     code = generateCode();
-    const existingFile = await File.findOne({ code });
-    exists = !!existingFile;
+    exists = await File.findOne({ code });
   }
 
-  const expiryDays = isGuest ? 2 : 21;
-
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + expiryDays);
+  expiresAt.setDate(expiresAt.getDate() + (req.user ? 21 : 2));
 
   const newFile = await File.create({
     fileName: req.file.originalname,
@@ -71,7 +74,6 @@ const uploadFile = asyncHandler(async (req, res) => {
     isGuest,
     expiresAt,
     uploadedBy: req.user?._id || null,
-    status: "completed",
   });
 
   fs.unlinkSync(req.file.path);
@@ -81,56 +83,135 @@ const uploadFile = asyncHandler(async (req, res) => {
   );
 });
 
-// ✅ Get user files (with expiry countdown + sorting)
+
+// ================= CHUNKED UPLOAD =================
+
+// 🔥 START MULTIPART
+const startMultipartUpload = asyncHandler(async (req, res) => {
+  const { fileName, fileType, fileSize } = req.body;
+
+  if (!fileName || !fileSize) {
+    throw new ApiError(400, "File details required");
+  }
+
+  const isGuest = !req.user;
+
+  const maxSize = isGuest
+    ? 10 * 1024 * 1024
+    : 100 * 1024 * 1024;
+
+  if (fileSize > maxSize) {
+    throw new ApiError(
+      400,
+      isGuest
+        ? "Guest upload limit is 10MB"
+        : "User upload limit is 100MB"
+    );
+  }
+
+  const key = `uploads/${Date.now()}-${fileName}`;
+
+  const response = await s3.send(
+    new CreateMultipartUploadCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      ContentType: fileType,
+    })
+  );
+
+  res.json({
+    uploadId: response.UploadId,
+    key,
+  });
+});
+
+
+// 🔥 UPLOAD CHUNK
+const uploadChunkPart = asyncHandler(async (req, res) => {
+  const { uploadId, key, partNumber } = req.body;
+
+  if (!req.file) {
+    throw new ApiError(400, "Chunk file missing");
+  }
+
+  const response = await s3.send(
+    new UploadPartCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      UploadId: uploadId,
+      PartNumber: Number(partNumber),
+      Body: req.file.buffer,
+    })
+  );
+
+  res.json({
+    ETag: response.ETag,
+    partNumber: Number(partNumber),
+  });
+});
+
+
+// 🔥 COMPLETE MULTIPART
+const completeMultipartUpload = asyncHandler(async (req, res) => {
+  const { uploadId, key, parts, fileSize } = req.body;
+
+  if (!uploadId || !key || !parts) {
+    throw new ApiError(400, "Upload data missing");
+  }
+
+  await s3.send(
+    new CompleteMultipartUploadCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      UploadId: uploadId,
+      MultipartUpload: { Parts: parts },
+    })
+  );
+
+  // 🔑 Generate unique code
+  let code;
+  let exists = true;
+
+  while (exists) {
+    code = generateCode();
+    exists = await File.findOne({ code });
+  }
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 21);
+
+  const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+  const newFile = await File.create({
+    fileName: key.split("-").slice(1).join("-"),
+    fileSize: fileSize, // ✅ FIXED
+    fileUrl,
+    fileKey: key,
+    code,
+    isGuest: false,
+    expiresAt,
+    uploadedBy: req.user._id,
+  });
+
+  res.json(
+    new ApiResponse(200, newFile, "Chunk upload completed")
+  );
+});
+
+
+// ================= FILE FETCH =================
 const getFiles = asyncHandler(async (req, res) => {
   const files = await File.find({
     uploadedBy: req.user._id,
   }).sort({ createdAt: -1 });
 
-  const updatedFiles = files.map((file) => {
-    const timeLeft = file.expiresAt - new Date();
-
-    return {
-      ...file.toObject(),
-      expiresIn: Math.max(0, Math.floor(timeLeft / 1000)), // seconds
-    };
-  });
-
   res.status(200).json(
-    new ApiResponse(200, updatedFiles, "Files fetched successfully")
+    new ApiResponse(200, files, "Files fetched successfully")
   );
 });
 
-// 📊 Storage Usage
-const getStorageStats = asyncHandler(async (req, res) => {
-  const files = await File.find({ uploadedBy: req.user._id });
 
-  const totalUsed = files.reduce((acc, file) => acc + file.fileSize, 0);
-
-  res.status(200).json(
-    new ApiResponse(200, {
-      totalUsed,
-      totalFiles: files.length,
-    })
-  );
-});
-
-// 📊 System Metrics
-const getSystemMetrics = asyncHandler(async (req, res) => {
-  const totalFiles = await File.countDocuments();
-  const totalUserFiles = await File.countDocuments({ isGuest: false });
-  const totalGuestFiles = await File.countDocuments({ isGuest: true });
-
-  res.status(200).json(
-    new ApiResponse(200, {
-      totalFiles,
-      totalUserFiles,
-      totalGuestFiles,
-    })
-  );
-});
-
-// 🔐 Download (private)
+// ================= DOWNLOAD (PRIVATE) =================
 const getDownloadUrl = asyncHandler(async (req, res) => {
   const { fileId } = req.params;
 
@@ -138,10 +219,7 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
 
   if (!file) throw new ApiError(404, "File not found");
 
-  if (
-    file.uploadedBy &&
-    file.uploadedBy.toString() !== req.user._id.toString()
-  ) {
+  if (file.uploadedBy.toString() !== req.user._id.toString()) {
     throw new ApiError(403, "Access denied");
   }
 
@@ -151,14 +229,14 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
 
   const key = file.fileUrl.split(".amazonaws.com/")[1];
 
-  const command = new GetObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: key,
-  });
-
-  const signedUrl = await getSignedUrl(s3, command, {
-    expiresIn: 60,
-  });
+  const signedUrl = await getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+    }),
+    { expiresIn: 60 }
+  );
 
   file.downloadCount += 1;
   file.lastDownloadedAt = new Date();
@@ -169,7 +247,8 @@ const getDownloadUrl = asyncHandler(async (req, res) => {
   );
 });
 
-// 🔑 Public access via code
+
+// ================= PUBLIC DOWNLOAD =================
 const getFileByCode = asyncHandler(async (req, res) => {
   const { code } = req.params;
 
@@ -183,14 +262,14 @@ const getFileByCode = asyncHandler(async (req, res) => {
 
   const key = file.fileUrl.split(".amazonaws.com/")[1];
 
-  const command = new GetObjectCommand({
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: key,
-  });
-
-  const signedUrl = await getSignedUrl(s3, command, {
-    expiresIn: 60,
-  });
+  const signedUrl = await getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+    }),
+    { expiresIn: 60 }
+  );
 
   file.downloadCount += 1;
   file.lastDownloadedAt = new Date();
@@ -206,11 +285,14 @@ const getFileByCode = asyncHandler(async (req, res) => {
   );
 });
 
+
+// ================= EXPORT =================
 export {
   uploadFile,
   getFiles,
   getDownloadUrl,
   getFileByCode,
-  getStorageStats,
-  getSystemMetrics,
+  startMultipartUpload,
+  uploadChunkPart,
+  completeMultipartUpload,
 };

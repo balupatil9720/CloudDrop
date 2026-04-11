@@ -3,24 +3,28 @@ import {
   uploadFile,
   getFiles,
   getDownloadUrl,
-  getFileByCode
+  getFileByCode,
+  startMultipartUpload,
+  uploadChunkPart,
+  completeMultipartUpload,
 } from "../controllers/fileController.js";
 
-import { upload } from "../middlewares/multer.middleware.js";
+import { upload, uploadChunk } from "../middlewares/multer.middleware.js";
 import { protect, optionalAuth } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// 🔥 Upload → guest + user allowed
+// ✅ Normal upload
 router.post("/upload", optionalAuth, upload.single("file"), uploadFile);
 
-// 🔐 Only logged-in users can see their files
+// 🔥 Chunked upload routes
+router.post("/start-upload", protect, startMultipartUpload);
+router.post("/upload-chunk", protect, uploadChunk.single("file"), uploadChunkPart);
+router.post("/complete-upload", protect, completeMultipartUpload);
+
+// existing
 router.get("/", protect, getFiles);
-
-// 🔐 Secure download
 router.get("/download/:fileId", protect, getDownloadUrl);
-
-// 🌐 Public access via code
 router.get("/code/:code", getFileByCode);
 
 export default router;
